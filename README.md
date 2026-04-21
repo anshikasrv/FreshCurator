@@ -1,4 +1,4 @@
-# FreshCurator (Antigravity Project)
+# FreshCurator 
 
 FreshCurator is a full-stack, AI-integrated delivery and management platform. It features a modern multi-folder architecture, secure Google OAuth authentication, and real-time communication.
 

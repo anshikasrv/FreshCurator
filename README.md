@@ -38,18 +38,20 @@ This repository is organized into five main modules:
 1. **Clone the Repo:**
    ```bash
    git clone <your-repo-url>
-   cd freshcurator
-2.Backend Setup:
-  npm install
+   cd freshcurator```
+2. **Backend Setup: **
+  ```npm install
     # Create a .env file with:
     # MONGO_URI, JWT_SECRET, GOOGLE_API_KEY
     npm run dev
-3.Frontend Setup:
-    cd ../frontend
+```
+3.**Frontend Setup:**
+```cd ../frontend
 npm install
 # Create a .env.local file with:
 # NEXT_PUBLIC_API_URL, NEXTAUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 npm run dev
-5. ``bash
-   git clone <your-repo-url>
-   cd freshcurator
+```
+
+
+

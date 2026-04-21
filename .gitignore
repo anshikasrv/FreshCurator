@@ -1,0 +1,11 @@
+# Folders to exclude from the root
+ui_exports/
+.vscode/
+scratch/
+
+# Exclude node_modules inside subfolders
+frontend/node_modules/
+backend/node_modules/
+
+# Standard practice: ignore any node_modules found anywhere
+**/node_modules/

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { AlertCircle, RefreshCcw, Home } from 'lucide-react';
-import Link from 'next/link';
+import React from "react";
+import { AlertCircle, RefreshCcw, Home } from "lucide-react";
+import Link from "next/link";
 
 export default function Error({
   error,
@@ -13,7 +13,7 @@ export default function Error({
 }) {
   React.useEffect(() => {
     // Log the error to an error reporting service
-    console.error('Runtime Error:', error);
+    console.error("Runtime Error:", error);
   }, [error]);
 
   return (
@@ -22,15 +22,20 @@ export default function Error({
         <div className="w-20 h-20 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-8">
           <AlertCircle size={40} className="text-error" />
         </div>
-        
-        <h1 className="text-3xl font-black font-headline tracking-tighter text-on-surface mb-2">Something went wrong</h1>
+
+        <h1 className="text-3xl font-black font-headline tracking-tighter text-on-surface mb-2">
+          Something went wrong
+        </h1>
         <p className="text-on-surface-variant font-body text-sm mb-10 leading-relaxed">
-          An unexpected error occurred while rendering this page. We've logged the incident and our team is already looking into it.
+          An unexpected error occurred while rendering this page. We have logged
+          the incident and our team is already looking into it.
         </p>
 
         {error.message && (
           <div className="bg-error/5 border border-error/10 rounded-2xl p-4 mb-10 text-left">
-            <p className="text-[10px] font-black text-error uppercase tracking-widest mb-1">Diagnostic Info</p>
+            <p className="text-[10px] font-black text-error uppercase tracking-widest mb-1">
+              Diagnostic Info
+            </p>
             <p className="text-xs font-mono font-bold text-on-surface leading-tight break-all">
               {error.message}
             </p>
@@ -45,7 +50,7 @@ export default function Error({
             <RefreshCcw size={18} strokeWidth={2.5} />
             Try to Recover
           </button>
-          
+
           <Link
             href="/"
             className="w-full py-4 rounded-2xl bg-surface-container-high text-on-surface font-bold font-headline transition-all hover:bg-surface-container-highest flex items-center justify-center gap-2"

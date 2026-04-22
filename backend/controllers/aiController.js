@@ -21,52 +21,52 @@ const getAiTips = async (req, res) => {
 const Product = require('../models/Product');
 
 //older--------->>>>>>>>>>
-const chatFreshCurator = async (req, res) => {
-  const { message, history } = req.body;
-  try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy_key');
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+// const chatFreshCurator = async (req, res) => {
+//   const { message, history } = req.body;
+//   try {
+//     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy_key');
+//     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
-    // Fetch current products for precise AI grounding
-    const currentProducts = await Product.find().limit(50).lean();
-    const productSnapshot = currentProducts.map(p => `${p.name} (₹${p.price}) - ${p.category}`).join(', ');
+//     // Fetch current products for precise AI grounding
+//     const currentProducts = await Product.find().limit(50).lean();
+//     const productSnapshot = currentProducts.map(p => `${p.name} (₹${p.price}) - ${p.category}`).join(', ');
 
-    // Format history for Gemini & ensure it starts with 'user'
-    let formattedHistory = (history || []).map((h) => ({
-      role: h.role === 'user' ? 'user' : 'model',
-      parts: [{ text: h.content }],
-    }));
-    while (formattedHistory.length > 0 && formattedHistory[0].role !== 'user') {
-      formattedHistory.shift();
-    }
+//     // Format history for Gemini & ensure it starts with 'user'
+//     let formattedHistory = (history || []).map((h) => ({
+//       role: h.role === 'user' ? 'user' : 'model',
+//       parts: [{ text: h.content }],
+//     }));
+//     while (formattedHistory.length > 0 && formattedHistory[0].role !== 'user') {
+//       formattedHistory.shift();
+//     }
 
-    const chat = model.startChat({ history: formattedHistory });
+//     const chat = model.startChat({ history: formattedHistory });
 
-    const instruction = `System: You are "FreshAssistant", a friendly, premium shopping assistant for FreshCurator. 
-    FreshCurator specializes in organic, pesticide-free farm products in India. 
-    Be helpful, concise, and encourage healthy living. 
-    CURRENT INVENTORY IN STOCK: [${productSnapshot}]. 
-    If a user asks about a product, ONLY confirm availability if it's in this list.
-    User Query: ${message}`;
+//     const instruction = `System: You are "FreshAssistant", a friendly, premium shopping assistant for FreshCurator. 
+//     FreshCurator specializes in organic, pesticide-free farm products in India. 
+//     Be helpful, concise, and encourage healthy living. 
+//     CURRENT INVENTORY IN STOCK: [${productSnapshot}]. 
+//     If a user asks about a product, ONLY confirm availability if it's in this list.
+//     User Query: ${message}`;
 
-    console.log(`[FreshAssistant] Processing message: "${message.substring(0, 50)}..."`);
-    const result = await chat.sendMessage(instruction);
-    const responseText = result.response.text();
+//     console.log(`[FreshAssistant] Processing message: "${message.substring(0, 50)}..."`);
+//     const result = await chat.sendMessage(instruction);
+//     const responseText = result.response.text();
     
-    res.json({ response: responseText });
-  } catch (error) {
-    console.error('CRITICAL AI ERROR:', {
-      message: error.message,
-      stack: error.stack,
-      keyExists: !!process.env.GEMINI_API_KEY
-    });
-    res.status(500).json({ 
-      error: 'Failed to chat', 
-      details: error.message,
-      troubleshooting: "Check if GEMINI_API_KEY is valid and not rate-limited."
-    });
-  }
-};
+//     res.json({ response: responseText });
+//   } catch (error) {
+//     console.error('CRITICAL AI ERROR:', {
+//       message: error.message,
+//       stack: error.stack,
+//       keyExists: !!process.env.GEMINI_API_KEY
+//     });
+//     res.status(500).json({ 
+//       error: 'Failed to chat', 
+//       details: error.message,
+//       troubleshooting: "Check if GEMINI_API_KEY is valid and not rate-limited."
+//     });
+//   }
+// };
 
 //newer to fix responses--------->>>>>>>>
 const chatFreshCurator = async (req, res) => {

@@ -168,10 +168,16 @@ const Razorpay = require('razorpay'); // 1. Added Razorpay dependency
 const crypto = require('crypto');//added for verification
 
 // 2. Initialize Razorpay instance
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// const razorpay = new Razorpay({
+//   key_id: process.env.RAZORPAY_KEY_ID,
+//   key_secret: process.env.RAZORPAY_KEY_SECRET,
+// });
+const razorpay = (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) 
+  ? new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    })
+  : null;
 
 const getOrders = async (req, res) => {
   try {
@@ -308,7 +314,7 @@ const getAvailableOrders = async (req, res) => {
 
 
 
-exports.verifyPayment = async (req, res) => {
+const verifyPayment = async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
   const sign = razorpay_order_id + "|" + razorpay_payment_id;

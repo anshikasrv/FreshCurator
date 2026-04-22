@@ -334,5 +334,5 @@ module.exports = {
   getOrdersByUser,
   getAvailableOrders,
   createOrder,
-  updateOrderStatus
-};
+  updateOrderStatus,verifyPayment
+};      

@@ -47,6 +47,119 @@ export default function CheckoutPage() {
   const tax = totalAmount * 0.05;
   const grandTotal = totalAmount + tax;
 
+
+  //older before fixing razorpay ------>>>>>>
+  // const handleRazorpayPayment = async () => {
+  //   if (!address.trim()) {
+  //     setError('Please enter a delivery address.');
+  //     return;
+  //   }
+    
+  //   setError('');
+  //   setProcessing(true);
+
+  //   const coords = deliveryCoords || { lat: 0, lng: 0 };
+
+  //   const placeOrderDirectly = async () => {
+  //     try {
+  //       const userId = (session?.user as any)?.id;
+        
+  //       // Final guard: Ensure userId is a valid MongoDB ObjectId (24 chars hex)
+  //       const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(userId || '');
+        
+  //       if (!isValidObjectId) {
+  //         console.error("Invalid User ID detected:", userId);
+  //         setError('Your session has expired or is invalid. Please Logout and Login again to continue.');
+  //         setProcessing(false);
+  //         return;
+  //       }
+
+  //       await createOrder({
+  //         userId: userId,
+  //         products: items.map(item => ({
+  //           productId: item.id,
+  //           quantity: item.quantity,
+  //           price: item.price,
+  //         })),
+  //         totalAmount: grandTotal,
+  //         deliveryAddress: address,
+  //         deliveryCoords: coords,
+  //         paymentMethod: paymentMethod === 'cod' ? 'COD' : 'Online',
+  //         status: 'Placed'
+  //       } as any);
+  //       dispatch(clearCart());
+  //       router.push('/orders');
+  //     } catch (err) {
+  //       console.error('Order error:', err);
+  //       setError('Failed to place order. Please try again.');
+  //       setProcessing(false);
+  //     }
+  //   };
+
+  //   if (paymentMethod === 'cod') {
+  //     await placeOrderDirectly();
+  //     return;
+  //   }
+
+  //   try {
+  //     const options = {
+  //       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_test_DUMMY',
+  //       amount: Math.round(grandTotal * 100),
+  //       currency: 'INR',
+  //       name: 'FreshCurator',
+  //       description: 'Organic Groceries Order',
+  //       image: '/favicon.ico',
+  //       method: {
+  //         netbanking: true,
+  //         card: true,
+  //         upi: true,
+  //         wallet: true,
+  //       },
+  //       handler: async (response: { razorpay_order_id?: string; razorpay_payment_id?: string }) => {
+  //         try {
+  //           await createOrder({
+  //             userId: (session?.user as any)?.id,
+  //             products: items.map(item => ({
+  //               productId: item.id,
+  //               quantity: item.quantity,
+  //               price: item.price,
+  //             })),
+  //             totalAmount: grandTotal,
+  //             deliveryAddress: address,
+  //             deliveryCoords: coords,
+  //             paymentMethod: 'Online',
+  //             razorpayOrderId: response.razorpay_order_id,
+  //             razorpayPaymentId: response.razorpay_payment_id,
+  //             status: 'Placed',
+  //           } as any);
+  //           dispatch(clearCart());
+  //           router.push('/orders');
+  //         } catch (err) {
+  //           console.error('Order save error:', err);
+  //           setError('Payment successful but failed to save order. Contact support.');
+  //           setProcessing(false);
+  //         }
+  //       },
+  //       prefill: {
+  //         name: session?.user?.name || 'Customer',
+  //         email: session?.user?.email || '',
+  //         contact: (session?.user as any)?.phone || '9000000000',
+  //       },
+  //       theme: { color: '#006a30' },
+  //       modal: {
+  //         ondismiss: () => setProcessing(false),
+  //       },
+  //     };
+
+  //     const rzp = new (window as any).Razorpay(options);
+  //     rzp.open();
+  //   } catch {
+  //     setError('Failed to initialize payment. Please try again.');
+  //     setProcessing(false);
+  //   }
+  // };
+
+  //newer------------>>>>>>>>>>>>.
   const handleRazorpayPayment = async () => {
     if (!address.trim()) {
       setError('Please enter a delivery address.');
@@ -57,102 +170,116 @@ export default function CheckoutPage() {
     setProcessing(true);
 
     const coords = deliveryCoords || { lat: 0, lng: 0 };
+    const userId = (session?.user as any)?.id;
 
-    const placeOrderDirectly = async () => {
-      try {
-        const userId = (session?.user as any)?.id;
-        
-        // Final guard: Ensure userId is a valid MongoDB ObjectId (24 chars hex)
-        const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(userId || '');
-        
-        if (!isValidObjectId) {
-          console.error("Invalid User ID detected:", userId);
-          setError('Your session has expired or is invalid. Please Logout and Login again to continue.');
-          setProcessing(false);
-          return;
-        }
-
-        await createOrder({
-          userId: userId,
-          products: items.map(item => ({
-            productId: item.id,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-          totalAmount: grandTotal,
-          deliveryAddress: address,
-          deliveryCoords: coords,
-          paymentMethod: paymentMethod === 'cod' ? 'COD' : 'Online',
-          status: 'Placed'
-        } as any);
-        dispatch(clearCart());
-        router.push('/orders');
-      } catch (err) {
-        console.error('Order error:', err);
-        setError('Failed to place order. Please try again.');
-        setProcessing(false);
-      }
-    };
-
-    if (paymentMethod === 'cod') {
-      await placeOrderDirectly();
+    // 1. Backend Order Creation (Now generates the real Razorpay Order ID)
+    let orderResponse;
+    try {
+      orderResponse = await createOrder({
+        userId: userId,
+        products: items.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        totalAmount: grandTotal,
+        deliveryAddress: address,
+        deliveryCoords: coords,
+        paymentMethod: paymentMethod === 'cod' ? 'COD' : 'Online',
+      } as any);
+    } catch (err) {
+      console.error('Order creation failed:', err);
+      setError('Failed to initiate order. Please try again.');
+      setProcessing(false);
       return;
     }
 
+    // 2. Handle Cash on Delivery (Ends here)
+    if (paymentMethod === 'cod') {
+      dispatch(clearCart());
+      router.push('/orders');
+      return;
+    }
+
+    // 3. Handle Online Payment (Razorpay)
     try {
+      // const options = {
+      //   key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Use your actual key
+      //   amount: Math.round(grandTotal * 100), // In paise
+      //   currency: 'INR', // Force INR to fix the international error
+      //   name: 'FreshCurator',
+      //   description: 'Organic Groceries Order',
+      //   order_id: orderResponse.razorpayOrderId, // CRITICAL: Use ID from your backend
+      //   handler: async (response: any) => {
+      //     // Here you would normally call a verifyPayment API
+      //     dispatch(clearCart());
+      //     router.push('/orders');
+      //   },
+      //   prefill: {
+      //     name: session?.user?.name || 'Customer',
+      //     email: session?.user?.email || '',
+      //     contact: (session?.user as any)?.phone || '9000000000',
+      //   },
+      //   theme: { color: '#006a30' },
+      //   modal: {
+      //     ondismiss: () => setProcessing(false),
+      //   },
+      // };
+
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_test_DUMMY',
-        amount: Math.round(grandTotal * 100),
-        currency: 'INR',
-        name: 'FreshCurator',
-        description: 'Organic Groceries Order',
-        image: '/favicon.ico',
-        method: {
-          netbanking: true,
-          card: true,
-          upi: true,
-          wallet: true,
-        },
-        handler: async (response: { razorpay_order_id?: string; razorpay_payment_id?: string }) => {
-          try {
-            await createOrder({
-              userId: (session?.user as any)?.id,
-              products: items.map(item => ({
-                productId: item.id,
-                quantity: item.quantity,
-                price: item.price,
-              })),
-              totalAmount: grandTotal,
-              deliveryAddress: address,
-              deliveryCoords: coords,
-              paymentMethod: 'Online',
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              status: 'Placed',
-            } as any);
-            dispatch(clearCart());
-            router.push('/orders');
-          } catch (err) {
-            console.error('Order save error:', err);
-            setError('Payment successful but failed to save order. Contact support.');
-            setProcessing(false);
-          }
-        },
-        prefill: {
-          name: session?.user?.name || 'Customer',
-          email: session?.user?.email || '',
-          contact: (session?.user as any)?.phone || '9000000000',
-        },
-        theme: { color: '#006a30' },
-        modal: {
-          ondismiss: () => setProcessing(false),
-        },
-      };
+  // --- Kept your original configuration exactly ---
+  key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_test_DUMMY',
+  amount: Math.round(grandTotal * 100),
+  currency: 'INR',
+  name: 'FreshCurator',
+  description: 'Organic Groceries Order',
+  image: '/favicon.ico',
+  order_id: orderResponse.razorpayOrderId, // Now using the real ID from your backend
+  method: {
+    netbanking: true,
+    card: true,
+    upi: true,
+    wallet: true,
+  },
+
+  // --- Updated Handler (Preserves functionality + adds verification) ---
+  handler: async (response: { razorpay_order_id?: string; razorpay_payment_id?: string; razorpay_signature?: string }) => {
+    try {
+      // 1. Verify the payment signature on the backend
+      // This ensures the order moves from 'Pending' to 'Placed' in your database
+      await api.post('/api/orders/verify-payment', {
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature,
+      });
+
+      // 2. Your original success logic
+      dispatch(clearCart());
+      router.push('/orders');
+    } catch (err) {
+      console.error('Order verification error:', err);
+      setError('Payment was successful, but we couldn\'t verify the order. Please contact support.');
+      setProcessing(false);
+    }
+  },
+
+  // --- Kept your prefill and theme exactly the same ---
+  prefill: {
+    name: session?.user?.name || 'Customer',
+    email: session?.user?.email || '',
+    contact: (session?.user as any)?.phone || '9000000000',
+  },
+  theme: { color: '#006a30' },
+  modal: {
+    ondismiss: () => setProcessing(false),
+  },
+};
 
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
-    } catch {
-      setError('Failed to initialize payment. Please try again.');
+    } catch (err) {
+      console.error('Razorpay init error:', err);
+      setError('Failed to open payment gateway.');
       setProcessing(false);
     }
   };

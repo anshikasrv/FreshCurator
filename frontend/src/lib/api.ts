@@ -7,6 +7,15 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+//newly added------------------->>>>>
+export const setAuthToken = (token: string) => {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
+};
+
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 export interface Product {
   _id: string;
@@ -102,3 +111,6 @@ export const fetchAITip = (deliveryAddress: string) =>
   api.post<{ tip: string }>('/api/ai/tips', { deliveryAddress }).then(r => r.data.tip);
 
 export default api;
+// ─── ADMIN DATA ──────────────────────────────────────────────────────────────
+export const fetchAdminStats = () =>
+  api.get('/api/admin/stats').then(r => r.data);

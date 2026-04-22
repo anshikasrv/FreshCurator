@@ -58,7 +58,7 @@ export default function Signup() {
     <div className="bg-mesh font-body text-on-surface min-h-screen flex items-center justify-center p-4 transition-colors duration-500">
       <main className="w-full max-w-md relative">
         {/* Theme Toggle */}
-        <div className="absolute -top-12 right-0 z-10">
+        <div className="absolute top-4 right-4 z-10">
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="p-3 rounded-full bg-surface-container-low hover:bg-surface-container-high transition-all hover:scale-110 text-on-surface shadow-md"

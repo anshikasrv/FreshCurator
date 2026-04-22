@@ -20,11 +20,12 @@ const getAiTips = async (req, res) => {
 
 const Product = require('../models/Product');
 
+//older--------->>>>>>>>>>
 const chatFreshCurator = async (req, res) => {
   const { message, history } = req.body;
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy_key');
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
     // Fetch current products for precise AI grounding
     const currentProducts = await Product.find().limit(50).lean();
@@ -63,6 +64,55 @@ const chatFreshCurator = async (req, res) => {
       error: 'Failed to chat', 
       details: error.message,
       troubleshooting: "Check if GEMINI_API_KEY is valid and not rate-limited."
+    });
+  }
+};
+
+//newer to fix responses--------->>>>>>>>
+const chatFreshCurator = async (req, res) => {
+  const { message, history } = req.body;
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // Ensure this key is in .env
+    
+    // 1. Use gemini-1.5-flash for faster, more reliable "FreshAssistant" responses
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-1.5-flash',
+      systemInstruction: "You are 'FreshAssistant', a friendly shopping assistant for FreshCurator. Only recommend products from the provided inventory. Keep it concise. Use 🌿.",
+    });
+    
+    // 2. Fetch current products for grounding
+    const currentProducts = await Product.find().limit(50).lean();
+    const productSnapshot = currentProducts.map(p => `${p.name} (₹${p.price})`).join(', ');
+
+    // 3. Format history and ensure it starts with 'user'
+    let formattedHistory = (history || []).map((h) => ({
+      role: h.role === 'user' ? 'user' : 'model',
+      parts: [{ text: h.content }],
+    }));
+
+    // Safety check: History MUST start with 'user' or Gemini throws a 400 error
+    if (formattedHistory.length > 0 && formattedHistory[0].role !== 'user') {
+      formattedHistory.shift();
+    }
+
+    const chat = model.startChat({ 
+      history: formattedHistory,
+      generationConfig: { maxOutputTokens: 200 } // Keep it brief
+    });
+
+    // 4. Send message with current context
+    const contextPrompt = `Inventory: [${productSnapshot}]. User: ${message}`;
+    const result = await chat.sendMessage(contextPrompt);
+    const responseText = result.response.text();
+    
+    res.json({ response: responseText });
+
+  } catch (error) {
+    console.error('GEMINI ERROR:', error.message);
+    // This sends a clear error so your frontend can show a specific message
+    res.status(500).json({ 
+      error: 'Failed to chat', 
+      details: error.message 
     });
   }
 };

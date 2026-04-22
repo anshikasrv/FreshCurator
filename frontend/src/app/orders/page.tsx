@@ -102,92 +102,257 @@ export default function OrdersPage() {
           </Link>
         </div>
       ) : (
+        // <div className="space-y-6">
+        //   {orders.map(order => (
+        //     <div key={order._id} className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden">
+        //       {/* Order Header */}
+        //       <div className="px-6 py-4 flex items-center justify-between border-b border-outline-variant/10 flex-wrap gap-3">
+        //         <div>
+        //           <p className="font-label text-xs text-on-surface-variant uppercase tracking-wider mb-0.5">Order ID</p>
+        //           <p className="font-headline font-bold text-on-surface">#{order._id.slice(-8).toUpperCase()}</p>
+        //         </div>
+        //         <div className="text-right sm:text-left">
+        //           <p className="font-label text-xs text-on-surface-variant uppercase tracking-wider mb-0.5">Date</p>
+        //           <p className="font-body text-sm text-on-surface">
+        //             {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+        //           </p>
+        //         </div>
+        //         <div className="text-right">
+        //           <p className="font-label text-xs text-on-surface-variant uppercase tracking-wider mb-0.5">Total</p>
+        //           <p className="font-headline font-extrabold text-primary">${order.totalAmount.toFixed(2)}</p>
+        //         </div>
+        //         <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold font-label ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-600'}`}>
+        //           <span className="material-symbols-outlined text-sm">{STATUS_ICONS[order.status] || 'help'}</span>
+        //           {order.status}
+        //         </span>
+        //       </div>
+
+        //       {/* Status Timeline */}
+        //       <div className="px-6 py-4 border-b border-outline-variant/10">
+        //         <div className="flex items-center gap-0">
+        //           {['Placed', 'Accepted', 'Out for Delivery', 'Delivered'].map((s, i, arr) => {
+        //             const statuses = ['Placed', 'Accepted', 'Out for Delivery', 'Delivered'];
+        //             const currentIdx = statuses.indexOf(order.status);
+        //             const stepIdx = statuses.indexOf(s);
+        //             const isComplete = stepIdx <= currentIdx;
+        //             const isCurrent = stepIdx === currentIdx;
+        //             return (
+        //               <React.Fragment key={s}>
+        //                 <div className="flex flex-col items-center">
+        //                   <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+        //                     isComplete ? 'bg-primary' : 'bg-surface-container-low border-2 border-outline-variant/20'
+        //                   } ${isCurrent ? 'ring-4 ring-primary/20' : ''}`}>
+        //                     {isComplete && <span className="material-symbols-outlined text-on-primary text-xs">check</span>}
+        //                   </div>
+        //                   <p className={`text-xs mt-1 font-label whitespace-nowrap hidden sm:block ${isComplete ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>{s}</p>
+        //                 </div>
+        //                 {i < arr.length - 1 && (
+        //                   <div className={`flex-1 h-0.5 mx-1 transition-all ${stepIdx < currentIdx ? 'bg-primary' : 'bg-surface-container-low'}`} />
+        //                 )}
+        //               </React.Fragment>
+        //             );
+        //           })}
+        //         </div>
+        //       </div>
+
+        //       {/* Items */}
+        //       <div className="px-6 py-4">
+        //         <p className="text-xs font-label text-on-surface-variant uppercase tracking-wider mb-3">Items</p>
+        //         <div className="flex flex-wrap gap-2">
+        //           {order.products.map((p, i) => {
+        //             const prod = typeof p.productId === 'object' ? p.productId as any : null;
+        //             return (
+        //               <div key={i} className="flex items-center gap-2 bg-surface-container-low px-3 py-2 rounded-xl">
+        //                 <span className="font-body text-sm text-on-surface">{prod?.name || 'Product'}</span>
+        //                 <span className="text-xs text-on-surface-variant">×{p.quantity}</span>
+        //               </div>
+        //             );
+        //           })}
+        //         </div>
+        //         {order.deliveryAddress && (
+        //           <p className="mt-3 text-xs text-on-surface-variant flex items-center gap-1">
+        //             <span className="material-symbols-outlined text-sm">location_on</span>
+        //             {order.deliveryAddress}
+        //           </p>
+        //         )}
+        //         {order.status === 'Out for Delivery' && order.deliveryOtp && (
+        //           <div className="mt-4 p-4 border-2 border-primary bg-primary/5 rounded-2xl flex items-center justify-between">
+        //             <div>
+        //               <p className="text-xs font-bold font-headline text-primary uppercase tracking-wider mb-0.5">Delivery OTP</p>
+        //               <p className="text-sm text-on-surface-variant">Share this code with your rider</p>
+        //             </div>
+        //             <span className="text-2xl font-black tracking-widest text-primary font-mono">{order.deliveryOtp}</span>
+        //           </div>
+        //         )}
+        //       </div>
+        //     </div>
+        //   ))}
+        // </div>
         <div className="space-y-6">
-          {orders.map(order => (
-            <div key={order._id} className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden">
-              {/* Order Header */}
-              <div className="px-6 py-4 flex items-center justify-between border-b border-outline-variant/10 flex-wrap gap-3">
-                <div>
-                  <p className="font-label text-xs text-on-surface-variant uppercase tracking-wider mb-0.5">Order ID</p>
-                  <p className="font-headline font-bold text-on-surface">#{order._id.slice(-8).toUpperCase()}</p>
-                </div>
-                <div className="text-right sm:text-left">
-                  <p className="font-label text-xs text-on-surface-variant uppercase tracking-wider mb-0.5">Date</p>
-                  <p className="font-body text-sm text-on-surface">
-                    {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-label text-xs text-on-surface-variant uppercase tracking-wider mb-0.5">Total</p>
-                  <p className="font-headline font-extrabold text-primary">${order.totalAmount.toFixed(2)}</p>
-                </div>
-                <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold font-label ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-600'}`}>
-                  <span className="material-symbols-outlined text-sm">{STATUS_ICONS[order.status] || 'help'}</span>
-                  {order.status}
-                </span>
-              </div>
-
-              {/* Status Timeline */}
-              <div className="px-6 py-4 border-b border-outline-variant/10">
-                <div className="flex items-center gap-0">
-                  {['Placed', 'Accepted', 'Out for Delivery', 'Delivered'].map((s, i, arr) => {
-                    const statuses = ['Placed', 'Accepted', 'Out for Delivery', 'Delivered'];
-                    const currentIdx = statuses.indexOf(order.status);
-                    const stepIdx = statuses.indexOf(s);
-                    const isComplete = stepIdx <= currentIdx;
-                    const isCurrent = stepIdx === currentIdx;
-                    return (
-                      <React.Fragment key={s}>
-                        <div className="flex flex-col items-center">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                            isComplete ? 'bg-primary' : 'bg-surface-container-low border-2 border-outline-variant/20'
-                          } ${isCurrent ? 'ring-4 ring-primary/20' : ''}`}>
-                            {isComplete && <span className="material-symbols-outlined text-on-primary text-xs">check</span>}
-                          </div>
-                          <p className={`text-xs mt-1 font-label whitespace-nowrap hidden sm:block ${isComplete ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>{s}</p>
-                        </div>
-                        {i < arr.length - 1 && (
-                          <div className={`flex-1 h-0.5 mx-1 transition-all ${stepIdx < currentIdx ? 'bg-primary' : 'bg-surface-container-low'}`} />
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Items */}
-              <div className="px-6 py-4">
-                <p className="text-xs font-label text-on-surface-variant uppercase tracking-wider mb-3">Items</p>
-                <div className="flex flex-wrap gap-2">
-                  {order.products.map((p, i) => {
-                    const prod = typeof p.productId === 'object' ? p.productId as any : null;
-                    return (
-                      <div key={i} className="flex items-center gap-2 bg-surface-container-low px-3 py-2 rounded-xl">
-                        <span className="font-body text-sm text-on-surface">{prod?.name || 'Product'}</span>
-                        <span className="text-xs text-on-surface-variant">×{p.quantity}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-                {order.deliveryAddress && (
-                  <p className="mt-3 text-xs text-on-surface-variant flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">location_on</span>
-                    {order.deliveryAddress}
-                  </p>
-                )}
-                {order.status === 'Out for Delivery' && order.deliveryOtp && (
-                  <div className="mt-4 p-4 border-2 border-primary bg-primary/5 rounded-2xl flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold font-headline text-primary uppercase tracking-wider mb-0.5">Delivery OTP</p>
-                      <p className="text-sm text-on-surface-variant">Share this code with your rider</p>
-                    </div>
-                    <span className="text-2xl font-black tracking-widest text-primary font-mono">{order.deliveryOtp}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+          {orders.map((order) => (
+    <Link
+      key={order._id}
+      href={`/orders/${order._id}`}
+      className="block transition-all active:scale-[0.98] group"
+    >
+      <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden group-hover:border-primary/50 group-hover:shadow-md transition-all">
+        {/* Order Header */}
+        <div className="px-6 py-4 flex items-center justify-between border-b border-outline-variant/10 flex-wrap gap-3 bg-white group-hover:bg-primary/[0.02] transition-colors">
+          <div>
+            <p className="font-label text-xs text-on-surface-variant uppercase tracking-wider mb-0.5">
+              Order ID
+            </p>
+            <p className="font-headline font-bold text-on-surface">
+              #{order._id.slice(-8).toUpperCase()}
+            </p>
+          </div>
+          <div className="text-right sm:text-left">
+            <p className="font-label text-xs text-on-surface-variant uppercase tracking-wider mb-0.5">
+              Date
+            </p>
+            <p className="font-body text-sm text-on-surface">
+              {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="font-label text-xs text-on-surface-variant uppercase tracking-wider mb-0.5">
+              Total
+            </p>
+            <p className="font-headline font-extrabold text-primary">
+              ${order.totalAmount.toFixed(2)}
+            </p>
+          </div>
+          <span
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold font-label ${
+              STATUS_COLORS[order.status] || "bg-gray-100 text-gray-600"
+            }`}
+          >
+            <span className="material-symbols-outlined text-sm">
+              {STATUS_ICONS[order.status] || "help"}
+            </span>
+            {order.status}
+          </span>
         </div>
+
+        {/* Status Timeline */}
+        <div className="px-6 py-4 border-b border-outline-variant/10">
+          <div className="flex items-center gap-0">
+            {["Placed", "Accepted", "Out for Delivery", "Delivered"].map(
+              (s, i, arr) => {
+                const statuses = ["Placed", "Accepted", "Out for Delivery", "Delivered"];
+                const currentIdx = statuses.indexOf(order.status);
+                const stepIdx = statuses.indexOf(s);
+                const isComplete = stepIdx <= currentIdx;
+                const isCurrent = stepIdx === currentIdx;
+                return (
+                  <React.Fragment key={s}>
+                    <div className="flex flex-col items-center">
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                          isComplete
+                            ? "bg-primary"
+                            : "bg-surface-container-low border-2 border-outline-variant/20"
+                        } ${isCurrent ? "ring-4 ring-primary/20" : ""}`}
+                      >
+                        {isComplete && (
+                          <span className="material-symbols-outlined text-on-primary text-xs">
+                            check
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className={`text-xs mt-1 font-label whitespace-nowrap hidden sm:block ${
+                          isComplete
+                            ? "text-primary font-bold"
+                            : "text-on-surface-variant"
+                        }`}
+                      >
+                        {s}
+                      </p>
+                    </div>
+                    {i < arr.length - 1 && (
+                      <div
+                        className={`flex-1 h-0.5 mx-1 transition-all ${
+                          stepIdx < currentIdx
+                            ? "bg-primary"
+                            : "bg-surface-container-low"
+                        }`}
+                      />
+                    )}
+                  </React.Fragment>
+                );
+              }
+            )}
+          </div>
+        </div>
+
+        {/* Items */}
+        <div className="px-6 py-4">
+          <p className="text-xs font-label text-on-surface-variant uppercase tracking-wider mb-3">
+            Items
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {order.products.map((p, i) => {
+              const prod =
+                typeof p.productId === "object"
+                  ? (p.productId as any)
+                  : null;
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 bg-surface-container-low px-3 py-2 rounded-xl"
+                >
+                  <span className="font-body text-sm text-on-surface">
+                    {prod?.name || "Product"}
+                  </span>
+                  <span className="text-xs text-on-surface-variant">
+                    ×{p.quantity}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {order.deliveryAddress && (
+            <p className="mt-3 text-xs text-on-surface-variant flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm">
+                location_on
+              </span>
+              {order.deliveryAddress}
+            </p>
+          )}
+
+          {/* Delivery OTP - Only shows when rider is out */}
+          {order.status === "Out for Delivery" && order.deliveryOtp && (
+            <div className="mt-4 p-4 border-2 border-primary bg-primary/5 rounded-2xl flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold font-headline text-primary uppercase tracking-wider mb-0.5">
+                  Delivery OTP
+                </p>
+                <p className="text-sm text-on-surface-variant">
+                  Share this code with your rider
+                </p>
+              </div>
+              <span className="text-2xl font-black tracking-widest text-primary font-mono">
+                {order.deliveryOtp}
+              </span>
+            </div>
+          )}
+          
+          {/* Subtle "Click to track" indicator */}
+          <div className="mt-4 text-center sm:text-right">
+            <span className="text-primary text-xs font-bold flex items-center justify-end gap-1">
+              View details & track <span className="material-symbols-outlined text-xs">arrow_forward</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  ))}
+</div>
       )}
     </main>
   );

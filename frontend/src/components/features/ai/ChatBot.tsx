@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useSession } from 'next-auth/react';
-import { usePathname } from 'next/navigation';
-import { Sparkles, X, Send, MessageCircle } from 'lucide-react';
-import axios from 'axios';
+import React, { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
+import { Sparkles, X, Send, MessageCircle } from "lucide-react";
+import axios from "axios";
 
 interface Message {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
@@ -17,60 +17,72 @@ export default function ChatBot() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Hi! I am your FreshAssistant. How can I help you find the best organic produce today? 🌿' }
+    {
+      role: "assistant",
+      content:
+        "Hi! I am your FreshAssistant. How can I help you find the best organic produce today? 🌿",
+    },
   ]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const toggleChat = () => setIsOpen(!isOpen);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   // ── AUTH & PATH GATING ──────────────────────────────────────────────────
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
   if (!session || isAuthPage) return null;
 
   const sendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || loading) return;
 
-    const userMsg: Message = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
+    const userMsg: Message = { role: "user", content: input };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
     setLoading(true);
 
     try {
-      const BACKEND_URL = 'http://localhost:4000/api';
+      const BACKEND_URL = "http://localhost:4000/api";
       const res = await axios.post(`${BACKEND_URL}/ai/chat`, {
         message: input,
-        history: messages.map(m => ({ role: m.role, content: m.content }))
+        history: messages.map((m) => ({ role: m.role, content: m.content })),
       });
-      
-      const assistantMsg: Message = { role: 'assistant', content: res.data.response };
-      setMessages(prev => [...prev, assistantMsg]);
+
+      const assistantMsg: Message = {
+        role: "assistant",
+        content: res.data.response,
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
-      console.error('Chat error:', err);
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I am having trouble connecting right now. 🍎' }]);
+      console.error("Chat error:", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Sorry, I am having trouble connecting right now. 🍎",
+        },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
-
   return (
-    <div className="fixed bottom-24 right-6 z-[80]">
+    <div className="fixed bottom-6 right-6 z-[80]">
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className="bg-surface/95 backdrop-blur-3xl w-[320px] sm:w-[400px] h-[500px] max-h-[80vh] rounded-[2.5rem] shadow-2xl border border-outline-variant/10 flex flex-col overflow-hidden mb-6 ring-1 ring-black/5"
+            className="bg-surface/95 backdrop-blur-3xl w-[320px] sm:w-[400px] h-[70vh] max-h-[80vh] rounded-[2.5rem] shadow-2xl border border-outline-variant/10 flex flex-col overflow-hidden ring-1 ring-black/5"
           >
-            <div className="flex flex-col h-[500px]">
+            <div className="flex flex-col h-full">
               {/* Header */}
               <div className="sticky top-0 z-10 flex items-center justify-between p-4 bg-primary text-on-primary rounded-t-2xl shadow-sm">
                 <div className="flex items-center gap-3">
@@ -78,14 +90,18 @@ export default function ChatBot() {
                     <Sparkles size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold font-headline text-sm leading-tight">FreshAssistant</h3>
+                    <h3 className="font-bold font-headline text-sm leading-tight">
+                      FreshAssistant
+                    </h3>
                     <div className="flex items-center gap-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                      <span className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Online</span>
+                      <span className="text-[10px] font-bold opacity-80 uppercase tracking-widest">
+                        Online
+                      </span>
                     </div>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setIsOpen(false)}
                   className="p-2 hover:bg-on-primary/10 rounded-xl transition-colors"
                 >
@@ -96,12 +112,17 @@ export default function ChatBot() {
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface/50 scroll-smooth">
                 {messages.map((m, idx) => (
-                  <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] p-3.5 rounded-2xl text-sm shadow-sm ${
-                      m.role === 'user' 
-                        ? 'bg-primary text-on-primary rounded-tr-none' 
-                        : 'bg-white dark:bg-surface-container-high text-on-surface rounded-tl-none border border-outline-variant/10'
-                    }`}>
+                  <div
+                    key={idx}
+                    className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[85%] p-3.5 rounded-2xl text-sm shadow-sm ${
+                        m.role === "user"
+                          ? "bg-primary text-on-primary rounded-tr-none"
+                          : "bg-white dark:bg-surface-container-high text-on-surface rounded-tl-none border border-outline-variant/10"
+                      }`}
+                    >
                       {m.content}
                     </div>
                   </div>
@@ -122,8 +143,11 @@ export default function ChatBot() {
 
               {/* Input Area */}
               <div className="p-4 bg-white dark:bg-surface-container-high border-t border-outline-variant/10 rounded-b-2xl">
-                <form 
-                  onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    sendMessage();
+                  }}
                   className="flex gap-2"
                 >
                   <input
@@ -150,10 +174,16 @@ export default function ChatBot() {
       <button
         onClick={toggleChat}
         className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 hover:scale-110 hover:-rotate-12 active:scale-90 ${
-          isOpen ? 'bg-error text-on-error rotate-90' : 'bg-primary text-on-primary shadow-primary/40'
+          isOpen
+            ? "bg-error text-on-error rotate-90"
+            : "bg-primary text-on-primary shadow-primary/40"
         }`}
       >
-        {isOpen ? <X size={28} strokeWidth={2.5} /> : <MessageCircle size={28} strokeWidth={2.5} />}
+        {isOpen ? (
+          <X size={28} strokeWidth={2.5} />
+        ) : (
+          <MessageCircle size={28} strokeWidth={2.5} />
+        )}
       </button>
     </div>
   );

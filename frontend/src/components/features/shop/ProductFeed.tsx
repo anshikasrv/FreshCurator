@@ -78,7 +78,7 @@ export default function ProductFeed({ initialCategory = 'All', hideFilters = fal
       )}
 
       {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 px-1 sm:px-0">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="bg-surface-container-lowest rounded-[1.5rem] p-4 animate-pulse">
               <div className="aspect-square rounded-xl bg-surface-container-low mb-4" />
@@ -94,7 +94,7 @@ export default function ProductFeed({ initialCategory = 'All', hideFilters = fal
           <p className="text-sm mt-2">Try a different category or check back later.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 px-1 sm:px-0">
           {products.map(p => (
             <ProductCard 
               key={p._id} 

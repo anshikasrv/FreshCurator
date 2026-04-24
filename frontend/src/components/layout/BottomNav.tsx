@@ -37,7 +37,7 @@ export default function BottomNav() {
   if (pathname === '/login' || pathname === '/signup') return null;
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-safe pt-2 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-outline-variant/5">
+    <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-safe pt-2 bg-surface/95 dark:bg-[#1a1c1e]/98 backdrop-blur-2xl rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] border-t border-outline-variant/10 dark:border-outline-variant/30">
       {nav.map((item: any) => {
         const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
         if (item.isLogout) {

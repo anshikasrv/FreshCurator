@@ -31,16 +31,16 @@ export default function ProductCard({ product, onAddToCart, isAdded }: ProductCa
         </Link>
         <button
           onClick={() => onAddToCart(product)}
-          className={`w-full py-2 rounded-xl font-bold font-headline transition-all text-sm flex items-center justify-center gap-2 relative z-10 ${
+          className={`w-full py-2 px-3 rounded-xl font-bold font-headline transition-all text-sm flex items-center justify-center gap-1.5 relative z-10 ${
             isAdded
               ? 'bg-green-500 text-white scale-95'
               : 'bg-surface-container-highest group-hover:bg-primary group-hover:text-on-primary'
           }`}
         >
           {isAdded ? (
-            <><span className="material-symbols-outlined text-lg">check</span> Added!</>
+            <><span className="material-symbols-outlined text-base leading-none">check</span> Added!</>
           ) : (
-            <><span className="material-symbols-outlined text-lg">add_shopping_cart</span> Add to Basket</>
+            <><span className="material-symbols-outlined text-base leading-none">add_shopping_cart</span> Add to Basket</>
           )}
         </button>
       </div>

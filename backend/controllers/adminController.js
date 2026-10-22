@@ -52,7 +52,7 @@ const getDashboardStats = async (req, res) => {
       ]),
       // Fetch actual lists for the tables
       Order.find({}).populate('userId', 'name email').sort({ createdAt: -1 }),
-      User.find({}).sort({ createdAt: -1 }),
+      User.find({}).select('-password -loginOtp -loginOtpExpiresAt -loginOtpAttempts -loginOtpLastSentAt').sort({ createdAt: -1 }),
       Product.find({})
     ]);
 

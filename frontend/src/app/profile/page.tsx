@@ -37,13 +37,12 @@ export default function ProfilePage() {
           <div className="h-32 bg-primary relative">
             <div className="absolute -bottom-12 left-8 sm:left-12">
               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-[2rem] bg-surface-container-high p-1 shadow-xl">
-                {user?.profileImage ? (
-                  <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover rounded-[1.8rem]" />
-                ) : (
-                  <div className="w-full h-full bg-secondary-container flex items-center justify-center rounded-[1.8rem]">
-                    <span className="text-4xl sm:text-5xl font-black font-headline text-on-secondary-container">{initial}</span>
-                  </div>
-                )}
+                <div className="relative w-full h-full bg-secondary-container flex items-center justify-center rounded-[1.8rem]">
+                  <span className="text-4xl sm:text-5xl font-black font-headline text-on-secondary-container">{initial}</span>
+                  {(user?.profileImage || user?.image) && (
+                    <img src={user.profileImage || user.image} alt={user.name || 'Profile'} onError={(event) => { event.currentTarget.style.display = 'none'; }} className="absolute inset-0 w-full h-full object-cover rounded-[1.8rem]" />
+                  )}
+                </div>
               </div>
             </div>
           </div>

@@ -3,9 +3,11 @@
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
-import { io, Socket } from "socket.io-client";
+import { io } from "socket.io-client";
 import { useParams, useRouter } from "next/navigation";
-import axios from "axios";
+import { fetchOrder, setAuthToken } from "@/lib/api";
+import type { Order } from "@/lib/api";
+import { formatINR } from "@/lib/currency";
 import OrderChat from "@/components/features/orders/OrderChat";
 
 // Leaflet markers are tricky in Next.js, we need to fix the default icons
@@ -32,14 +34,15 @@ const Circle = dynamic(() => import("react-leaflet").then((m) => m.Circle), {
 
 export default function OrderTracking() {
   const { id } = useParams();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [deliveryPos, setDeliveryPos] = useState<[number, number] | null>(null);
   const [customerPos, setCustomerPos] = useState<[number, number]>([
     28.6139, 77.209,
   ]); // Default to Delhi until geolocation loads
-  // const [L, setL] = useState<any>(null);
   const [L, setL] = useState<typeof import("leaflet") | null>(null);
 
   useEffect(() => {
@@ -70,26 +73,19 @@ export default function OrderTracking() {
 
       setL(L);
     });
-    const fetchOrder = async () => {
+    const loadOrder = async () => {
       try {
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/orders/${id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${(session as any)?.user?.accessToken}`,
-            },
-          },
-        );
-        setOrder(res.data);
-        if (res.data.deliveryCoords?.coordinates) {
-          // If the order already has delivery coords recorded
-          setDeliveryPos([
-            res.data.deliveryCoords.coordinates[1],
-            res.data.deliveryCoords.coordinates[0],
-          ]);
+        setAuthToken(session?.user?.accessToken || '');
+        const data = await fetchOrder(String(id));
+        setOrder(data);
+        if (data.deliveryCoords?.lat != null && data.deliveryCoords?.lng != null) {
+          setCustomerPos([data.deliveryCoords.lat, data.deliveryCoords.lng]);
         }
       } catch (err) {
         console.error("Failed to fetch order", err);
+        setLoadError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Could not load this order. Please try again.');
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -102,9 +98,12 @@ export default function OrderTracking() {
           (err) => console.log("Geolocation skipped/denied", err),
         );
       }
-      fetchOrder();
+      loadOrder();
+    } else if (sessionStatus === 'unauthenticated') {
+      router.replace('/login');
+      setLoading(false);
     }
-  }, [id, session]);
+  }, [id, session, sessionStatus, router]);
 
   useEffect(() => {
     if (!id) return;
@@ -113,6 +112,10 @@ export default function OrderTracking() {
     const socket = io(SOCKET_URL);
 
     socket.emit("join_order_tracking", { orderId: id });
+
+    socket.on('order_status_update', ({ status: nextStatus }) => {
+      setOrder((current) => current ? { ...current, status: nextStatus } : current);
+    });
 
     socket.on("delivery_location_update", (coords) => {
       console.log("Location update received:", coords);
@@ -124,17 +127,20 @@ export default function OrderTracking() {
     };
   }, [id]);
 
-  if (!order || !L)
+  if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="font-headline font-bold text-on-surface">
-            Initializing live tracking...
+            Loading order details...
           </p>
         </div>
       </div>
     );
+
+  if (loadError || !order) return <main className="pt-24 min-h-screen flex items-center justify-center"><div className="text-center p-8"><h1 className="text-2xl font-bold mb-3">Unable to show this order</h1><p className="text-on-surface-variant mb-6">{loadError || 'Order not found.'}</p><button onClick={() => router.push('/orders')} className="bg-primary text-on-primary px-5 py-3 rounded-xl font-bold">Back to My Orders</button></div></main>;
+  if (!L) return <main className="pt-24 min-h-screen flex items-center justify-center">Loading map…</main>;
 
   return (
     <div className="pt-16 min-h-screen bg-mesh flex flex-col lg:flex-row overflow-hidden">
@@ -179,7 +185,7 @@ export default function OrderTracking() {
                     Delivery Partner
                   </p>
                   <p className="font-bold text-on-surface">
-                    {(order.deliveryBoyId as any)?.name ||
+                    {(typeof order.deliveryBoyId === 'object' && order.deliveryBoyId ? order.deliveryBoyId.name : null) ||
                       "Assigning Partner..."}
                   </p>
                 </div>
@@ -210,24 +216,24 @@ export default function OrderTracking() {
               Order Details
             </p>
             <div className="space-y-3">
-              {order.products.map((p: any, i: number) => (
+              {order.products.map((p, i: number) => (
                 <div
                   key={i}
                   className="flex justify-between items-center text-sm"
                 >
                   <span className="text-on-surface-variant">
-                    {(p.productId as any)?.name || "Item"}{" "}
+                    {(typeof p.productId === 'object' && p.productId ? p.productId.name : null) || "Item"}{" "}
                     <span className="text-[10px] font-bold">×{p.quantity}</span>
                   </span>
                   <span className="font-bold text-on-surface">
-                    ₹{(p.price * p.quantity).toFixed(2)}
+                    {formatINR(p.price * p.quantity)}
                   </span>
                 </div>
               ))}
               <div className="pt-3 border-t border-outline-variant/10 flex justify-between items-center font-black">
                 <span>Total Amount</span>
                 <span className="text-primary">
-                  ₹{order.totalAmount.toFixed(2)}
+                  {formatINR(order.totalAmount)}
                 </span>
               </div>
             </div>

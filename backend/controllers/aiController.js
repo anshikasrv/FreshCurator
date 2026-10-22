@@ -1,4 +1,4 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenAI } = require('@google/genai');
 
 const getAiTips = async (req, res) => {
   try {
@@ -6,20 +6,17 @@ const getAiTips = async (req, res) => {
     if (!deliveryAddress) {
       return res.status(400).json({ error: "Delivery address is required" });
     }
-    const genAI = new GoogleGenerativeAI(
-      process.env.GEMINI_API_KEY || "dummy_key",
-    );
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    if (!process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'AI tips are not configured.' });
+    const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const prompt = `You are an AI assistant for a delivery app. Given the delivery address: "${deliveryAddress}", generate a single, helpful 1-sentence 'Rider Tip' for the delivery boy (e.g., about traffic, weather, or area characteristics). Keep it brief and practical.`;
-    const result = await model.generateContent(prompt);
-    const tip = result.response.text().trim();
+    const result = await genAI.models.generateContent({ model: process.env.GEMINI_MODEL || 'gemini-3.8-flash', contents: prompt });
+    const tip = result.text?.trim();
+    if (!tip) return res.status(502).json({ error: 'AI service returned an empty response.' });
     res.json({ tip });
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    res.status(500).json({
-      tip: "Check local traffic conditions before heading out.",
-      error: "AI service unavailable",
-    });
+    const status = Number(error.status || error.statusCode);
+    console.error('Gemini tip request failed', { status: Number.isFinite(status) ? status : undefined });
+    res.status(status === 429 ? 429 : 502).json({ error: 'AI service unavailable.' });
   }
 };
 
@@ -74,17 +71,18 @@ const Product = require("../models/Product");
 // };
 
 //newer to fix responses--------->>>>>>>>
+const chatWindows = new Map();
 const chatFreshCurator = async (req, res) => {
-  const { message, history } = req.body;
+  const { message, history } = req.body || {};
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // Ensure this key is in .env
-
-    // 1. Use gemini-1.5-flash for faster, more reliable "FreshAssistant" responses
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      systemInstruction:
-        "You are 'FreshAssistant', a friendly shopping assistant for FreshCurator. Only recommend products from the provided inventory. Keep it concise. Use 🌿.",
-    });
+    if (typeof message !== 'string' || !message.trim() || message.length > 2000) return res.status(400).json({ error: 'Message must contain 1 to 2000 characters.' });
+    if (!Array.isArray(history) || history.length > 12 || history.some((item) => !item || !['user', 'assistant'].includes(item.role) || typeof item.content !== 'string' || item.content.length > 2000)) return res.status(400).json({ error: 'Conversation history is invalid or too long.' });
+    const now = Date.now();
+    const lastRequest = chatWindows.get(String(req.user._id)) || 0;
+    if (now - lastRequest < 10_000) return res.status(429).json({ error: 'Please wait a few seconds before sending another message.' });
+    chatWindows.set(String(req.user._id), now);
+    if (!process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'Chat assistant is not configured.' });
+    const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     // 2. Fetch current products for grounding
     const currentProducts = await Product.find().limit(50).lean();
@@ -93,34 +91,34 @@ const chatFreshCurator = async (req, res) => {
       .join(", ");
 
     // 3. Format history and ensure it starts with 'user'
-    let formattedHistory = (history || []).map((h) => ({
+    let formattedHistory = history.map((h) => ({
       role: h.role === "user" ? "user" : "model",
       parts: [{ text: h.content }],
     }));
 
     // Safety check: History MUST start with 'user' or Gemini throws a 400 error
-    if (formattedHistory.length > 0 && formattedHistory[0].role !== "user") {
-      formattedHistory.shift();
-    }
+    while (formattedHistory.length > 0 && formattedHistory[0].role !== "user") formattedHistory.shift();
 
-    const chat = model.startChat({
+    const chat = genAI.chats.create({
+      model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
       history: formattedHistory,
-      generationConfig: { maxOutputTokens: 200 }, // Keep it brief
+      config: { systemInstruction: "You are FreshAssistant, a friendly FreshCurator shopping assistant. Only recommend items from the supplied current inventory. Do not invent prices, availability, order data, or tracking information. Keep replies concise.", maxOutputTokens: 200 },
     });
 
     // 4. Send message with current context
-    const contextPrompt = `Inventory: [${productSnapshot}]. User: ${message}`;
-    const result = await chat.sendMessage(contextPrompt);
-    const responseText = result.response.text();
+    const contextPrompt = `Current inventory (authoritative product names and INR prices): [${productSnapshot}].\nCustomer question: ${message.trim()}`;
+    const result = await chat.sendMessage({ message: contextPrompt });
+    const responseText = result.text?.trim();
+    if (!responseText) return res.status(502).json({ error: 'The assistant returned an empty response. Please try again.' });
 
     res.json({ response: responseText });
   } catch (error) {
-    console.error("GEMINI ERROR:", error.message);
+    const status = Number(error.status || error.statusCode);
+    console.error('Gemini request failed', { status: Number.isFinite(status) ? status : undefined, message: String(error.message || '').slice(0, 250) });
     // This sends a clear error so your frontend can show a specific message
-    res.status(500).json({
-      error: "Failed to chat",
-      details: error.message,
-    });
+    if (status === 429) return res.status(429).json({ error: 'The assistant is busy. Please try again shortly.' });
+    if ([401, 403].includes(status)) return res.status(503).json({ error: 'The assistant credentials are unavailable. Please contact support.' });
+    res.status(502).json({ error: 'The assistant could not process this request. Please try again.' });
   }
 };
 

@@ -3,7 +3,8 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import axios from 'axios';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/users';
+const BACKEND_BASE = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const BACKEND_URL = BACKEND_BASE.endsWith('/api/users') ? BACKEND_BASE : `${BACKEND_BASE}/api/users`;
 
 const handler = NextAuth({
   providers: [
@@ -19,7 +20,7 @@ const handler = NextAuth({
         role: { label: 'Role', type: 'text' },
         otp: { label: 'OTP', type: 'text' }
       },
-      async authorize(credentials) {
+      async authorize(credentials: Record<string, string> | undefined) {
         try {
           const res = await axios.post(`${BACKEND_URL}/login`, {
             email: credentials?.email,
@@ -37,28 +38,28 @@ const handler = NextAuth({
     })
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       if (account?.provider === 'google') {
         try {
           const { cookies } = await import('next/headers');
-          const cookieStore = cookies();
+          const cookieStore = await cookies();
           const selectedRole = cookieStore.get('fc_oauth_role')?.value || 'User';
 
           const res = await axios.post(`${BACKEND_URL}/social-sync`, {
             email: user.email,
-            name: user.name,
-            profileImage: user.image,
+            googleAccessToken: account.access_token,
             role: selectedRole === 'Rider' ? 'Delivery Boy' : selectedRole
           });
 
-          // Enrich user object for the jwt callback
+          // Enrich user object so jwt callback can pick it up
           (user as any).mongodbId = res.data._id;
           (user as any).role = res.data.role;
           (user as any).profileImage = res.data.profileImage;
           (user as any).token = res.data.token;
-          
+
           return true;
         } catch (error) {
+          // Do not create an authenticated session without a matching backend account/token.
           console.error('Social Sync Error:', error);
           return false;
         }
@@ -66,7 +67,7 @@ const handler = NextAuth({
       return true;
     },
     async jwt({ token, user }) {
-      // user is only available on sign-in
+      // user is only available on initial sign-in
       if (user) {
         token.mongodbId = (user as any).mongodbId || (user as any)._id || (user as any).id;
         token.role = (user as any).role;

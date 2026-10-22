@@ -2,6 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Product } from '@/lib/api';
+import { formatINR } from '@/lib/currency';
 
 interface ProductCardProps {
   product: Product;
@@ -24,7 +25,7 @@ export default function ProductCard({ product, onAddToCart, isAdded }: ProductCa
           <div className="space-y-1 mb-3">
             <div className="flex justify-between items-start">
               <h3 className="font-headline font-bold text-on-surface text-sm leading-tight">{product.name}</h3>
-              <span className="font-headline font-extrabold text-primary text-sm ml-2 whitespace-nowrap">₹{product.price.toFixed(2)}</span>
+              <span className="font-headline font-extrabold text-primary text-sm ml-2 whitespace-nowrap">{formatINR(product.price)}</span>
             </div>
             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-label">{product.category}</span>
           </div>

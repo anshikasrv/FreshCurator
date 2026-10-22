@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { Sparkles, X, Send, MessageCircle } from "lucide-react";
-import axios from "axios";
+import { sendAIMessage, setAuthToken } from "@/lib/api";
+import { isAxiosError } from 'axios';
 
 interface Message {
   role: "user" | "assistant";
@@ -47,24 +48,28 @@ export default function ChatBot() {
     setLoading(true);
 
     try {
-      const BACKEND_URL = "http://localhost:4000/api";
-      const res = await axios.post(`${BACKEND_URL}/ai/chat`, {
-        message: input,
-        history: messages.map((m) => ({ role: m.role, content: m.content })),
-      });
+      setAuthToken(session?.user?.accessToken || '');
+      const history = messages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
+      const res = await sendAIMessage(input.trim(), history);
 
       const assistantMsg: Message = {
         role: "assistant",
-        content: res.data.response,
+        content: res.response,
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
       console.error("Chat error:", err);
+      const status = isAxiosError(err) ? err.response?.status : undefined;
+      const detail = status === 429
+        ? "You're sending messages too quickly. Please wait a moment and try again."
+        : status === 503
+          ? "The assistant is not configured right now. Please contact support."
+          : "I couldn't reach the assistant. Please try again.";
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "Sorry, I am having trouble connecting right now. 🍎",
+          content: detail,
         },
       ]);
     } finally {

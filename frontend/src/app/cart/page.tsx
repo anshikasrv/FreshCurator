@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { formatINR } from '@/lib/currency';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import { addToCart, removeFromCart, clearCart } from '@/store/cartSlice';
@@ -66,7 +67,7 @@ export default function CartPage() {
 
               <div className="flex-1 min-w-0">
                 <h3 className="font-headline font-bold text-on-surface truncate">{item.name}</h3>
-                <p className="text-primary font-extrabold font-headline mt-1">₹{item.price.toFixed(2)} each</p>
+                <p className="text-primary font-extrabold font-headline mt-1">{formatINR(item.price)} each</p>
               </div>
 
               <div className="flex flex-col items-end gap-3">
@@ -92,7 +93,7 @@ export default function CartPage() {
                     <span className="material-symbols-outlined text-sm">add</span>
                   </button>
                 </div>
-                <p className="font-extrabold text-on-surface font-headline">₹{(item.price * item.quantity).toFixed(2)}</p>
+                <p className="font-extrabold text-on-surface font-headline">{formatINR(item.price * item.quantity)}</p>
               </div>
             </div>
           ))}
@@ -107,7 +108,7 @@ export default function CartPage() {
             <div className="space-y-3 mb-5">
               <div className="flex justify-between text-sm font-body">
                 <span className="text-on-surface-variant">Subtotal</span>
-                <span className="font-semibold">₹{totalAmount.toFixed(2)}</span>
+                <span className="font-semibold">{formatINR(totalAmount)}</span>
               </div>
               <div className="flex justify-between text-sm font-body">
                 <span className="text-on-surface-variant">Delivery</span>
@@ -115,12 +116,12 @@ export default function CartPage() {
               </div>
               <div className="flex justify-between text-sm font-body">
                 <span className="text-on-surface-variant">Tax (5%)</span>
-                <span className="font-semibold">₹{(totalAmount * 0.05).toFixed(2)}</span>
+                <span className="font-semibold">{formatINR(totalAmount * 0.05)}</span>
               </div>
             </div>
             <div className="flex justify-between font-extrabold font-headline text-lg pt-4 border-t border-outline-variant/10 mb-6">
               <span>Total</span>
-              <span className="text-primary">₹{(totalAmount * 1.05).toFixed(2)}</span>
+              <span className="text-primary">{formatINR(totalAmount * 1.05)}</span>
             </div>
             <Link
               href="/checkout"

@@ -1,10 +1,11 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import { clearCart } from '@/store/cartSlice';
 import { useSession } from 'next-auth/react';
-import { createOrder } from '@/lib/api';
+import { createOrder, verifyPayment, setAuthToken } from '@/lib/api';
+import { formatINR } from '@/lib/currency';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -18,6 +19,8 @@ export default function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [deliveryCoords, setDeliveryCoords] = useState<{lat: number, lng: number} | null>(null);
+  const submissionInFlight = useRef(false);
+  const checkoutKey = useRef('');
 
   const captureLocation = () => {
     if (navigator.geolocation) {
@@ -161,16 +164,33 @@ export default function CheckoutPage() {
 
   //newer------------>>>>>>>>>>>>.
   const handleRazorpayPayment = async () => {
+    if (submissionInFlight.current) return;
     if (!address.trim()) {
       setError('Please enter a delivery address.');
+      return;
+    }
+    const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY;
+    const RazorpayConstructor = window.Razorpay;
+    if (paymentMethod === 'online' && (!razorpayKey || !RazorpayConstructor)) {
+      setError(!razorpayKey ? 'Online payment is not configured. Please choose Cash on Delivery or contact support.' : 'Payment checkout is still loading. Please try again in a moment.');
       return;
     }
     
     setError('');
     setProcessing(true);
+    submissionInFlight.current = true;
 
     const coords = deliveryCoords || { lat: 0, lng: 0 };
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
+    const accessToken = session?.user?.accessToken;
+    if (!accessToken || !userId || items.length === 0) {
+      setError('Please sign in again and check that your basket has items.');
+      setProcessing(false);
+      submissionInFlight.current = false;
+      return;
+    }
+    setAuthToken(accessToken);
+    if (!checkoutKey.current) checkoutKey.current = crypto.randomUUID();
 
     // 1. Backend Order Creation (Now generates the real Razorpay Order ID)
     let orderResponse;
@@ -186,23 +206,27 @@ export default function CheckoutPage() {
         deliveryAddress: address,
         deliveryCoords: coords,
         paymentMethod: paymentMethod === 'cod' ? 'COD' : 'Online',
-      } as any);
+      }, checkoutKey.current);
     } catch (err) {
       console.error('Order creation failed:', err);
       setError('Failed to initiate order. Please try again.');
       setProcessing(false);
+      submissionInFlight.current = false;
       return;
     }
 
     // 2. Handle Cash on Delivery (Ends here)
     if (paymentMethod === 'cod') {
       dispatch(clearCart());
+      checkoutKey.current = '';
+      submissionInFlight.current = false;
       router.push('/orders');
       return;
     }
 
     // 3. Handle Online Payment (Razorpay)
     try {
+      if (!RazorpayConstructor) throw new Error('Razorpay checkout is unavailable.');
       // const options = {
       //   key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Use your actual key
       //   amount: Math.round(grandTotal * 100), // In paise
@@ -228,13 +252,13 @@ export default function CheckoutPage() {
 
       const options = {
   // --- Kept your original configuration exactly ---
-  key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_test_DUMMY',
-  amount: Math.round(grandTotal * 100),
+  key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY,
+  amount: Math.round(orderResponse.totalAmount * 100),
   currency: 'INR',
   name: 'FreshCurator',
   description: 'Organic Groceries Order',
   image: '/favicon.ico',
-  order_id: orderResponse.razorpayOrderId, // Now using the real ID from your backend
+  order_id: orderResponse.razorpayOrderId,
   method: {
     netbanking: true,
     card: true,
@@ -247,7 +271,7 @@ export default function CheckoutPage() {
     try {
       // 1. Verify the payment signature on the backend
       // This ensures the order moves from 'Pending' to 'Placed' in your database
-      await api.post('/api/orders/verify-payment', {
+      await verifyPayment({
         razorpay_order_id: response.razorpay_order_id,
         razorpay_payment_id: response.razorpay_payment_id,
         razorpay_signature: response.razorpay_signature,
@@ -255,11 +279,14 @@ export default function CheckoutPage() {
 
       // 2. Your original success logic
       dispatch(clearCart());
+      checkoutKey.current = '';
+      submissionInFlight.current = false;
       router.push('/orders');
     } catch (err) {
       console.error('Order verification error:', err);
       setError('Payment was successful, but we couldn\'t verify the order. Please contact support.');
       setProcessing(false);
+      submissionInFlight.current = false;
     }
   },
 
@@ -267,20 +294,20 @@ export default function CheckoutPage() {
   prefill: {
     name: session?.user?.name || 'Customer',
     email: session?.user?.email || '',
-    contact: (session?.user as any)?.phone || '9000000000',
   },
   theme: { color: '#006a30' },
   modal: {
-    ondismiss: () => setProcessing(false),
+    ondismiss: () => { setProcessing(false); submissionInFlight.current = false; },
   },
 };
 
-      const rzp = new (window as any).Razorpay(options);
+      const rzp = new RazorpayConstructor(options);
       rzp.open();
     } catch (err) {
       console.error('Razorpay init error:', err);
       setError('Failed to open payment gateway.');
       setProcessing(false);
+      submissionInFlight.current = false;
     }
   };
 
@@ -356,7 +383,7 @@ export default function CheckoutPage() {
                     <p className="font-headline font-bold text-on-surface text-sm">{item.name}</p>
                     <p className="text-xs text-on-surface-variant">Qty: {item.quantity}</p>
                   </div>
-                  <p className="font-extrabold font-headline text-on-surface">₹{(item.price * item.quantity).toFixed(2)}</p>
+                  <p className="font-extrabold font-headline text-on-surface">{formatINR(item.price * item.quantity)}</p>
                 </div>
               ))}
             </div>
@@ -372,7 +399,7 @@ export default function CheckoutPage() {
             <div className="space-y-3 mb-5 font-body text-sm">
               <div className="flex justify-between">
                 <span className="text-on-surface-variant">Subtotal</span>
-                <span className="font-semibold">₹{totalAmount.toFixed(2)}</span>
+                <span className="font-semibold">{formatINR(totalAmount)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-on-surface-variant">Delivery</span>
@@ -380,12 +407,12 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-on-surface-variant">GST (5%)</span>
-                <span className="font-semibold">₹{tax.toFixed(2)}</span>
+                <span className="font-semibold">{formatINR(tax)}</span>
               </div>
             </div>
             <div className="flex justify-between font-extrabold font-headline text-xl pt-4 border-t border-outline-variant/10 mb-6">
               <span>Grand Total</span>
-              <span className="text-primary">₹{grandTotal.toFixed(2)}</span>
+              <span className="text-primary">{formatINR(grandTotal)}</span>
             </div>
 
             {/* Payment Method Selection */}

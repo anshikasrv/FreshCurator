@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { fetchProducts, createProduct, updateProduct, deleteProduct, Product } from '@/lib/api';
+import { fetchProducts, createProduct, updateProduct, deleteProduct, Product, setAuthToken } from '@/lib/api';
 import Link from 'next/link';
 import InventoryTable from '@/components/features/admin/InventoryTable';
 import ProductModal from '@/components/features/admin/ProductModal';
@@ -35,6 +35,7 @@ export default function InventoryPage() {
   const handleSave = async (form: Partial<Product>) => {
     setSaving(true);
     try {
+      setAuthToken(session?.user?.accessToken || '');
       if (editingProduct) {
         const updated = await updateProduct(editingProduct._id, form);
         setProducts(prev => prev.map(p => p._id === editingProduct._id ? updated : p));

@@ -157,6 +157,7 @@ import {
   Order,
   UserRecord,
 } from "@/lib/api"; // 2. Import setAuthToken
+import { formatINR } from "@/lib/currency";
 import { io } from "socket.io-client";
 
 const STATUSES = [
@@ -390,7 +391,7 @@ export default function OrderManagement() {
                       {o.deliveryAddress || "—"}
                     </td>
                     <td className="px-6 py-4 font-extrabold text-primary">
-                      ₹{o.totalAmount.toFixed(2)}
+                      {formatINR(o.totalAmount)}
                     </td>
                     <td className="px-6 py-4">
                       <span

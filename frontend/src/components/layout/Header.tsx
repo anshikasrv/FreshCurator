@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
@@ -35,26 +35,29 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const cartCount = useSelector((state: RootState) => state.cart.items.reduce((sum, i) => sum + i.quantity, 0));
-  const role = (session?.user as any)?.role as string | undefined;
+  const role = session?.user?.role;
   const [isScrolled, setIsScrolled] = useState(false);
   const [search, setSearch] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const currentSearch = new URLSearchParams(window.location.search).get('search') || '';
+    setSearch(currentSearch);
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const debouncedSearch = useCallback(
-    debounce((query: string) => {
-      if (query.trim()) {
-        router.push(`/shop?search=${encodeURIComponent(query)}`);
-      }
+  const debouncedSearch = useMemo(
+    () => debounce((query: string) => {
+      const value = query.trim();
+      router.replace(value ? `/shop?search=${encodeURIComponent(value)}` : '/shop', { scroll: false });
     }, 500),
     [router]
   );
+
+  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
 
   // Hide on auth, admin, and delivery pages - MUST BE AFTER ALL HOOKS
   if (
@@ -147,12 +150,15 @@ export default function Header() {
                     {session.user?.name || 'Guest'}
                   </p>
                 </div>
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 border border-primary/20 shadow-sm flex-shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform">
-                  {(session.user as any)?.profileImage || (session.user as any)?.image ? (
-                    <img src={(session.user as any).profileImage || (session.user as any).image} alt="" className="w-full h-full object-cover" />
+                <div className="relative w-10 h-10 rounded-full overflow-hidden bg-primary/10 border border-primary/20 shadow-sm flex-shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <span className="absolute font-black text-primary text-base font-headline">
+                    {session.user.name?.charAt(0).toUpperCase() || 'G'}
+                  </span>
+                  {session.user.profileImage || session.user.image ? (
+                    <img src={session.user.profileImage || session.user.image || ''} alt="" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="w-full h-full object-cover" />
                   ) : (
                     <span className="font-black text-primary text-base font-headline">
-                      {(session.user as any)?.name?.charAt(0).toUpperCase() || 'G'}
+                      {session.user.name?.charAt(0).toUpperCase() || 'G'}
                     </span>
                   )}
                 </div>

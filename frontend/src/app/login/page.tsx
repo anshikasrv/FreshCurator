@@ -37,7 +37,7 @@ function LoginForm() {
 
     try {
       const SERVER_URL =
-        process.env.NEXT_PUBLIC_SOCKET_SERVER || "http://localhost:4000";
+        process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_SOCKET_SERVER || "http://localhost:4000";
       const BACKEND_URL = `${SERVER_URL}/api/users`;
       await axios.post(`${BACKEND_URL}/send-otp`, { email, password });
 
@@ -80,6 +80,15 @@ function LoginForm() {
       router.refresh();
     }
   };
+
+  // Keep the login form out of server-rendered HTML. Theme and search-param
+  // state are client-owned, and password managers may modify these inputs
+  // before hydration. Rendering the same placeholder on the server and on
+  // the client's first pass prevents those DOM differences from breaking
+  // hydration; the form appears immediately after mount.
+  if (!mounted) {
+    return <div className="min-h-screen bg-mesh" aria-hidden="true" />;
+  }
 
   return (
     <div className="bg-mesh font-body text-on-surface min-h-screen flex items-center justify-center p-4 md:p-8 transition-colors duration-500">

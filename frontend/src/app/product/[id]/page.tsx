@@ -5,6 +5,7 @@ import { addToCart } from '@/store/cartSlice';
 import { fetchProduct, Product } from '@/lib/api';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { formatINR } from '@/lib/currency';
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -76,7 +77,7 @@ export default function ProductDetailPage() {
               {product.name}
             </h1>
             <p className="text-3xl font-extrabold text-primary font-headline">
-              ${product.price.toFixed(2)}
+              {formatINR(product.price)}
               <span className="text-sm text-on-surface-variant font-body font-normal ml-2">per unit</span>
             </p>
           </div>

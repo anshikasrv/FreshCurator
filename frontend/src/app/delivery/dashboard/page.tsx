@@ -4,8 +4,9 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import DeliveryTaskList from '@/components/features/delivery/DeliveryTaskList';
 import { PackageCheck, ClipboardList, TrendingUp, Package, CheckCircle } from 'lucide-react';
-import { fetchAllOrders, fetchAvailableOrders, updateOrderStatus, Order } from '@/lib/api';
+import { fetchAllOrders, fetchAvailableOrders, updateOrderStatus, Order, setAuthToken } from '@/lib/api';
 import { io } from 'socket.io-client';
+import { formatINR } from '@/lib/currency';
 
 export default function DeliveryDashboardPage() {
   const { data: session, status } = useSession();
@@ -17,12 +18,14 @@ export default function DeliveryDashboardPage() {
   const [viewStatus, setViewStatus] = useState<'active' | 'completed' | 'available'>('available');
   const [sortType, setSortType] = useState<'newest' | 'priority'>('newest');
 
-  const riderId = (session?.user as any)?.id;
+  const riderId = session?.user?.id;
+  const accessToken = session?.user?.accessToken;
 
   const loadData = useCallback(async () => {
     if (!riderId) return;
     setLoading(true);
     try {
+      setAuthToken(accessToken || '');
       const [assigned, available] = await Promise.all([
         fetchAllOrders({ deliveryBoyId: riderId }),
         fetchAvailableOrders(),
@@ -34,10 +37,10 @@ export default function DeliveryDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [riderId]);
+  }, [riderId, accessToken]);
 
   useEffect(() => {
-    if (status === 'unauthenticated' || (session?.user && (session.user as any).role !== 'Delivery Boy')) {
+    if (status === 'unauthenticated' || (session?.user && session.user.role !== 'Delivery Boy')) {
       router.push('/login');
     } else if (status === 'authenticated') {
       loadData();
@@ -193,7 +196,7 @@ export default function DeliveryDashboardPage() {
                   <div>
                     <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">New Order</p>
                     <h2 className="text-xl font-black font-headline tracking-tight">#{order._id.slice(-8).toUpperCase()}</h2>
-                    <p className="text-primary text-lg font-black mt-0.5">₹{order.totalAmount.toFixed(2)}</p>
+                    <p className="text-primary text-lg font-black mt-0.5">{formatINR(order.totalAmount)}</p>
                   </div>
                   <span className="px-3 py-1.5 bg-violet-100 text-violet-700 text-xs font-black rounded-2xl uppercase tracking-widest">
                     Awaiting Pickup

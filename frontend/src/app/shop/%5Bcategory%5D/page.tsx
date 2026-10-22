@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import ProductFeed from '@/components/features/shop/ProductFeed';
 import Link from 'next/link';
 
@@ -17,7 +17,7 @@ export default function CategoryPage({ params }: { params: { category: string } 
         </h1>
       </div>
       
-      <ProductFeed initialCategory={category} hideFilters={true} />
+      <Suspense fallback={<div className="py-16 text-center">Loading products…</div>}><ProductFeed initialCategory={category} hideFilters={true} /></Suspense>
 
       {/* FAB Cart */}
       <Link

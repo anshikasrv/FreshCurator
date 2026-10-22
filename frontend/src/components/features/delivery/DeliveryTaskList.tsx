@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { io, Socket } from 'socket.io-client';
-import { updateOrderStatus, fetchAITip, Order } from '@/lib/api';
+import { updateOrderStatus, fetchAITip, Order, setAuthToken } from '@/lib/api';
+import { formatINR } from '@/lib/currency';
 import Link from 'next/link';
 import { Truck, CheckCircle, Brain, MapPin, User, Navigation, X, Lock, BadgeCheck } from 'lucide-react';
 
@@ -74,6 +75,7 @@ export default function DeliveryTaskList({ orders: rawOrders, loading, sortType,
     setUpdatingId(order._id);
     setOtpError('');
     try {
+      setAuthToken(session?.user?.accessToken || '');
       await updateOrderStatus(order._id, newStatus, (session?.user as any)?.id, otp);
       if (socket) {
         socket.emit('delivery_status_changed', { orderId: order._id, status: newStatus });
@@ -135,7 +137,7 @@ export default function DeliveryTaskList({ orders: rawOrders, loading, sortType,
                   <div className="h-[1px] w-8 bg-outline-variant/30" />
                 </div>
                 <h2 className="text-2xl font-black font-headline tracking-tight">#{order._id.slice(-8).toUpperCase()}</h2>
-                <p className="text-primary text-xl font-black mt-1">₹{order.totalAmount.toFixed(2)}</p>
+                <p className="text-primary text-xl font-black mt-1">{formatINR(order.totalAmount)}</p>
               </div>
               <span className={`px-4 py-2 rounded-2xl text-xs font-black tracking-widest uppercase ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-600'}`}>
                 {order.status}

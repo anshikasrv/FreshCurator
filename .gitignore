@@ -1,7 +1,16 @@
+
 # Folders to exclude from the root
 ui_exports/
 .vscode/
 scratch/
+
+# Environment files — never commit secrets
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+frontend/.env.local
 
 # Exclude node_modules inside subfolders
 frontend/node_modules/

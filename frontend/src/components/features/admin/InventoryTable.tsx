@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Product } from '@/lib/api';
+import { formatINR } from '@/lib/currency';
 
 interface InventoryTableProps {
   products: Product[];
@@ -66,7 +67,7 @@ export default function InventoryTable({ products, loading, onEdit, onDelete, de
                       </div>
                     </td>
                     <td className="px-6 py-4"><span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-bold">{p.category}</span></td>
-                    <td className="px-6 py-4 font-extrabold font-headline text-primary">₹{p.price.toFixed(2)}</td>
+                    <td className="px-6 py-4 font-extrabold font-headline text-primary">{formatINR(p.price)}</td>
                     <td className="px-6 py-4"><div className="flex flex-wrap gap-1">{(p.tags || []).map(t => <span key={t} className="bg-surface-container-low text-on-surface-variant px-2 py-0.5 rounded-full text-xs">#{t}</span>)}</div></td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">

@@ -42,10 +42,19 @@ const cartSlice = createSlice({
     clearCart: (state) => {
       state.items = [];
       state.totalAmount = 0;
+    },
+    restoreCart: (state, action: PayloadAction<CartItem[]>) => {
+      const items = action.payload.filter((item) =>
+        item && typeof item.id === 'string' && typeof item.name === 'string' &&
+        Number.isFinite(item.price) && item.price >= 0 &&
+        Number.isInteger(item.quantity) && item.quantity > 0
+      );
+      state.items = items;
+      state.totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     }
   },
 });
 
-export const { addToCart, removeFromCart, clearCart } = cartSlice.actions;
+export const { addToCart, removeFromCart, clearCart, restoreCart } = cartSlice.actions;
 
 export default cartSlice.reducer;

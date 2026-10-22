@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import { addToCart } from '@/store/cartSlice';
 import { fetchProducts, Product } from '@/lib/api';
 import ProductCard from './ProductCard';
+import { useSearchParams } from 'next/navigation';
 
 const CATEGORIES = ['All', 'Vegetables', 'Fruits', 'Dairy'];
 
@@ -21,22 +22,26 @@ interface ProductFeedProps {
 
 export default function ProductFeed({ initialCategory = 'All', hideFilters = false }: ProductFeedProps) {
   const dispatch = useDispatch();
+  const searchParams = useSearchParams();
+  const search = searchParams.get('search')?.trim() || '';
   const [products, setProducts] = useState<Product[]>([]);
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [addedId, setAddedId] = useState<string | null>(null);
 
   const loadProducts = useCallback(async (cat: string) => {
     setLoading(true);
     try {
-      const data = await fetchProducts(cat === 'All' ? undefined : cat);
+      const data = await fetchProducts(cat === 'All' ? undefined : cat, search);
       setProducts(data);
+      setLoadError('');
     } catch {
-      // fallback to empty
+      setLoadError('Could not load products. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [search]);
 
   useEffect(() => {
     loadProducts(activeCategory);
@@ -52,7 +57,7 @@ export default function ProductFeed({ initialCategory = 'All', hideFilters = fal
     <section id="products" className="mb-16">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold font-headline text-on-surface">
-          {activeCategory === 'All' ? "Today's Picks" : `${activeCategory} Collection`}
+          {search ? `Search results for “${search}”` : activeCategory === 'All' ? "Today's Picks" : `${activeCategory} Collection`}
         </h2>
         <span className="text-sm text-on-surface-variant font-body">{products.length} items</span>
       </div>
@@ -87,6 +92,8 @@ export default function ProductFeed({ initialCategory = 'All', hideFilters = fal
             </div>
           ))}
         </div>
+      ) : loadError ? (
+        <div role="alert" className="text-center py-20 text-error"><p className="font-bold">{loadError}</p><button className="mt-3 underline" onClick={() => loadProducts(activeCategory)}>Retry</button></div>
       ) : products.length === 0 ? (
         <div className="text-center py-20 text-on-surface-variant">
           <span className="material-symbols-outlined text-6xl mb-4 block">inventory_2</span>

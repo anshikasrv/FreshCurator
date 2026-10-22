@@ -15,6 +15,8 @@ const orderSchema = new mongoose.Schema({
   },
   deliveryAddress: { type: String, required: true },
   deliveryBoyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  razorpayOrderId: { type: String },
+  checkoutKey: { type: String },
   razorpayPaymentId: { type: String },
   paymentMethod: { type: String, enum: ['COD', 'Online'], default: 'Online' },
   paymentStatus: { type: String, enum: ['Pending', 'Paid', 'Failed'], default: 'Pending' },
@@ -22,8 +24,13 @@ const orderSchema = new mongoose.Schema({
     lat: { type: Number },
     lng: { type: Number }
   },
-  deliveryOtp: { type: String },
+  deliveryOtp: { type: String, select: false },
+  deliveryOtpExpiresAt: { type: Date, select: false },
+  deliveryOtpAttempts: { type: Number, default: 0, select: false },
+  deliveryOtpLastSentAt: { type: Date, default: null, select: false },
   createdAt: { type: Date, default: Date.now }
 });
+
+orderSchema.index({ userId: 1, checkoutKey: 1 }, { unique: true, partialFilterExpression: { checkoutKey: { $type: 'string' } } });
 
 module.exports = mongoose.model('Order', orderSchema);

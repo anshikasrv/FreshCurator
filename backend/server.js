@@ -5,6 +5,9 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const nodemailer = require("nodemailer");
 
+// Load configuration before controllers initialize provider clients.
+dotenv.config();
+
 const { initSocket } = require("./socket");
 const Product = require("./models/Product");
 
@@ -14,9 +17,6 @@ const orderRoutes = require("./routes/orderRoutes");
 const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const aiRoutes = require("./routes/aiRoutes");
-
-// Load env vars
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
@@ -28,7 +28,8 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "https://fresh-curator.vercel.app",
-];
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 //Middleware older------->>>>
 // const corsOptions = {
@@ -59,7 +60,7 @@ const corsOptions = {
     }
   },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key"],
   credentials: true,
   optionsSuccessStatus: 200,
 };
@@ -68,14 +69,19 @@ app.use(cors(corsOptions));
 
 app.use(express.json());
 
-// Connect to MongoDB
-const MONGODB_URI =
-  process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/FreshCurator";
-mongoose
-  .connect(MONGODB_URI)
-  .then(async () => {
-    console.log("MongoDB Connected: FreshCurator");
-    // Seed initial products if none exist
+// Middleware to catch database disconnection early rather than timing out after 10s
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path.startsWith('/api/test')) return next();
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      error: "Database Error: Could not connect to MongoDB Atlas. Please ensure your IP address is whitelisted in MongoDB Atlas Network Access (0.0.0.0/0)."
+    });
+  }
+  next();
+});
+
+const seedProducts = async () => {
+  try {
     const count = await Product.countDocuments();
     if (count === 0) {
       await Product.insertMany([
@@ -83,30 +89,24 @@ mongoose
           name: "Red Jewel Strawberries",
           price: 4.5,
           category: "Fruits",
-          description:
-            "Sweet and juicy hand-picked strawberries from organic farms.",
-          imageUrl:
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuDPMN8ABHjdvXBkrpmutS7TPtXG9qtXJ325t2F-z8IH55PlQG0e3sZkIglFh4eLBV4E8OJEWOOOhdVC9m94YcvZT1K_qYHHOjxtqvZaX7YjfPuuUZ7lD89-j0lwhkz76uJ8TMOl9MEct_s9Yp3JBFI9aVSBO-yCvQjrjcUpps0YJ-IkphEHyz1-Nh6rlo3pARbwYBTn05HNsa6U_kTRHFI_0aFOEqlCQSUI7cxfVGUBt2wjJW9QEYc34KsLthfey3gZmyckkk2yNw60",
+          description: "Sweet and juicy hand-picked strawberries from organic farms.",
+          imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDPMN8ABHjdvXBkrpmutS7TPtXG9qtXJ325t2F-z8IH55PlQG0e3sZkIglFh4eLBV4E8OJEWOOOhdVC9m94YcvZT1K_qYHHOjxtqvZaX7YjfPuuUZ7lD89-j0lwhkz76uJ8TMOl9MEct_s9Yp3JBFI9aVSBO-yCvQjrjcUpps0YJ-IkphEHyz1-Nh6rlo3pARbwYBTn05HNsa6U_kTRHFI_0aFOEqlCQSUI7cxfVGUBt2wjJW9QEYc34KsLthfey3gZmyckkk2yNw60",
           tags: ["organic", "fruit"],
         },
         {
           name: "Sun-Ripened Bell Peppers",
           price: 2.2,
           category: "Vegetables",
-          description:
-            "Vibrant, crunchy peppers bursting with natural sweetness.",
-          imageUrl:
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuCai2owf8uK6RUnZt7yNBpcZYRSH26IdeKELgtTj42XQ4G_5Y4bjFtZHVYoU1Y7BG4IQwTxs0ff2FHX9Vdg-dM8l_0OpHxYaikToml8ZDXmP03TIPBXFTI93kNrafABpFnzitbAvmBhBEFGf9UTS52v4ZjF0A19FdZdCgR7vgcNxwxmFTK8435xA3ojwg462w1DIbFQ6xxzArl6SLsEoCe2FstHqUEE4ScRrkHJHIKaQLejLzfpRDsLL0eKkpOdrQpCIe3shxrFhR3_",
+          description: "Vibrant, crunchy peppers bursting with natural sweetness.",
+          imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuCai2owf8uK6RUnZt7yNBpcZYRSH26IdeKELgtTj42XQ4G_5Y4bjFtZHVYoU1Y7BG4IQwTxs0ff2FHX9Vdg-dM8l_0OpHxYaikToml8ZDXmP03TIPBXFTI93kNrafABpFnzitbAvmBhBEFGf9UTS52v4ZjF0A19FdZdCgR7vgcNxwxmFTK8435xA3ojwg462w1DIbFQ6xxzArl6SLsEoCe2FstHqUEE4ScRrkHJHIKaQLejLzfpRDsLL0eKkpOdrQpCIe3shxrFhR3_",
           tags: ["fresh", "vegetable"],
         },
         {
           name: "Farm Fresh Milk",
           price: 1.8,
           category: "Dairy",
-          description:
-            "Pure whole milk from grass-fed cows, delivered fresh daily.",
-          imageUrl:
-            "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400&q=80",
+          description: "Pure whole milk from grass-fed cows, delivered fresh daily.",
+          imageUrl: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400&q=80",
           tags: ["dairy", "fresh"],
         },
         {
@@ -114,28 +114,23 @@ mongoose
           price: 3.2,
           category: "Vegetables",
           description: "Tender baby spinach leaves, washed and ready to eat.",
-          imageUrl:
-            "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&q=80",
+          imageUrl: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&q=80",
           tags: ["organic", "leafy", "vegetable"],
         },
         {
           name: "Alphonso Mangoes",
           price: 6.5,
           category: "Fruits",
-          description:
-            "The king of mangoes — rich, creamy, and intensely fragrant.",
-          imageUrl:
-            "https://images.unsplash.com/photo-1519096845289-95806ee03a1a?w=400&q=80",
+          description: "The king of mangoes — rich, creamy, and intensely fragrant.",
+          imageUrl: "https://images.unsplash.com/photo-1519096845289-95806ee03a1a?w=400&q=80",
           tags: ["seasonal", "fruit"],
         },
         {
           name: "Greek Yogurt",
           price: 2.9,
           category: "Dairy",
-          description:
-            "Thick, protein-rich yogurt made from whole organic milk.",
-          imageUrl:
-            "https://images.unsplash.com/photo-1488477181228-9ba5ece7b1cf?w=400&q=80",
+          description: "Thick, protein-rich yogurt made from whole organic milk.",
+          imageUrl: "https://images.unsplash.com/photo-1488477181228-9ba5ece7b1cf?w=400&q=80",
           tags: ["dairy", "protein"],
         },
         {
@@ -143,25 +138,52 @@ mongoose
           price: 3.75,
           category: "Vegetables",
           description: "Rare, colorful tomatoes with complex, rich flavor.",
-          imageUrl:
-            "https://images.unsplash.com/photo-1561136594-7f68813f8f36?w=400&q=80",
+          imageUrl: "https://images.unsplash.com/photo-1561136594-7f68813f8f36?w=400&q=80",
           tags: ["organic", "vegetable"],
         },
         {
           name: "Wild Blueberries",
           price: 5.0,
           category: "Fruits",
-          description:
-            "Smaller and more flavorful than farmed berries, packed with antioxidants.",
-          imageUrl:
-            "https://images.unsplash.com/photo-1498557850523-fd3d118b962e?w=400&q=80",
+          description: "Smaller and more flavorful than farmed berries, packed with antioxidants.",
+          imageUrl: "https://images.unsplash.com/photo-1498557850523-fd3d118b962e?w=400&q=80",
           tags: ["superfood", "fruit"],
         },
       ]);
       console.log("Seeded initial products.");
     }
-  })
-  .catch((err) => console.error("MongoDB connection error:", err));
+  } catch (err) {
+    console.error("Product seeding error:", err.message);
+  }
+};
+
+const connectDB = async () => {
+  const primaryUri = process.env.MONGODB_URI;
+  const localUri = "mongodb://127.0.0.1:27017/FreshCurator";
+
+  if (primaryUri) {
+    try {
+      await mongoose.connect(primaryUri, { serverSelectionTimeoutMS: 5000 });
+      console.log("MongoDB Connected: FreshCurator (Primary Atlas)");
+      await seedProducts();
+      return;
+    } catch (err) {
+      console.error("Primary MongoDB Connection Error (Atlas):", err.message);
+      console.log("Attempting fallback connection to local MongoDB...");
+    }
+  }
+
+  try {
+    await mongoose.connect(localUri, { serverSelectionTimeoutMS: 5000 });
+    console.log("MongoDB Connected: FreshCurator (Local Fallback)");
+    await seedProducts();
+  } catch (err) {
+    console.error("Local MongoDB Connection Error:", err.message);
+    console.error("CRITICAL: Could not connect to any MongoDB instance.");
+  }
+};
+
+connectDB();
 
 // ─── HEALTH CHECK ────────────────────────────────────────────────────────────
 app.get("/", (req, res) => {

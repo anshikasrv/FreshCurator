@@ -5,7 +5,12 @@ const getProducts = async (req, res) => {
     const filter = {};
     if (req.query.category) filter.category = req.query.category;
     if (req.query.search) {
-      filter.name = { $regex: req.query.search, $options: 'i' };
+      const search = String(req.query.search).trim().slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (search) filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { tags: { $regex: search, $options: 'i' } }
+      ];
     }
     const products = await Product.find(filter).sort({ createdAt: -1 });
     res.json(products);

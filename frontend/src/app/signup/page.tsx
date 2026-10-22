@@ -27,7 +27,7 @@ export default function Signup() {
     setMounted(true);
     const checkAdmin = async () => {
       try {
-        const SERVER_URL = process.env.NEXT_PUBLIC_SOCKET_SERVER || 'http://localhost:4000';
+        const SERVER_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_SOCKET_SERVER || 'http://localhost:4000';
         const res = await axios.get(`${SERVER_URL}/api/users/check-admin`);
         if (res.data.hasAdmin) {
           setHasAdmin(true);
@@ -43,7 +43,7 @@ export default function Signup() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const SERVER_URL = process.env.NEXT_PUBLIC_SOCKET_SERVER || 'http://localhost:4000';
+    const SERVER_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_SOCKET_SERVER || 'http://localhost:4000';
     try {
       await axios.post(`${SERVER_URL}/api/users/register`, { name, email, password, role });
       router.push('/login?registered=true');
@@ -109,7 +109,7 @@ export default function Signup() {
             <input value={email} onChange={e => setEmail(e.target.value)} required className="w-full px-4 py-3.5 bg-surface-container-low text-on-surface rounded-xl border-none ring-1 ring-outline-variant/20 focus:ring-2 focus:ring-primary focus:bg-surface transition-all text-sm" placeholder="Email Address" type="email" />
             
             <div className="relative">
-              <input value={password} onChange={e => setPassword(e.target.value)} required className="w-full pl-4 pr-12 py-3.5 bg-surface-container-low text-on-surface rounded-xl border-none ring-1 ring-outline-variant/20 focus:ring-2 focus:ring-primary focus:bg-surface transition-all text-sm" placeholder="Password (min 6 chars)" type={showPassword ? 'text' : 'password'} minLength={6} />
+              <input value={password} onChange={e => setPassword(e.target.value)} required className="w-full pl-4 pr-12 py-3.5 bg-surface-container-low text-on-surface rounded-xl border-none ring-1 ring-outline-variant/20 focus:ring-2 focus:ring-primary focus:bg-surface transition-all text-sm" placeholder="Password (min 8 chars)" type={showPassword ? 'text' : 'password'} minLength={8} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface">
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>

@@ -1,6 +1,10 @@
 const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
+    if (!process.env.EMAIL || !process.env.PASS) {
+        throw new Error('Email delivery is not configured. Set EMAIL and PASS on the backend.');
+    }
+    if (!options?.to || !options.subject || !options.html) throw new Error('Email recipient, subject, and body are required.');
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {

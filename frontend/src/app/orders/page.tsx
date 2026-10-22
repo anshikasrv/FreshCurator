@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { fetchUserOrders, Order } from "@/lib/api";
 import { io } from "socket.io-client";
 import Link from "next/link";
+import { setAuthToken } from "@/lib/api";
+import { formatINR } from "@/lib/currency";
 
 const STATUS_COLORS: Record<string, string> = {
   Pending: "bg-yellow-100 text-yellow-700",
@@ -29,19 +31,24 @@ export default function OrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const orderIds = orders.map((order) => order._id).join(',');
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
 
   const loadOrders = useCallback(async () => {
-    const userId = (session?.user as any)?.id;
+    const userId = session?.user?.id;
     if (!userId) return;
     try {
+      setAuthToken(session?.user?.accessToken || '');
       const data = await fetchUserOrders(userId);
       setOrders(data);
-    } catch {
-      // silently fail
+      setLoadError('');
+    } catch (error) {
+      console.error('Unable to load orders', error);
+      setLoadError('Could not load your orders. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -53,11 +60,11 @@ export default function OrdersPage() {
 
   // Real-time socket updates
   useEffect(() => {
-    if (!orders.length) return;
+    if (!orderIds) return;
     const SOCKET_URL =
       process.env.NEXT_PUBLIC_SOCKET_SERVER || "http://localhost:4000";
     const socket = io(SOCKET_URL);
-    orders.forEach((o) => socket.emit("join_order_room", o._id));
+    orderIds.split(',').forEach((orderId) => socket.emit("join_order_room", orderId));
 
     socket.on("order_status_update", ({ orderId, status: newStatus }) => {
       setOrders((prev) =>
@@ -67,7 +74,7 @@ export default function OrdersPage() {
     return () => {
       socket.disconnect();
     };
-  }, [orders.length]);
+  }, [orderIds]);
 
   if (status === "loading" || loading) {
     return (
@@ -106,7 +113,9 @@ export default function OrdersPage() {
         </Link>
       </div>
 
-      {orders.length === 0 ? (
+      {loadError ? (
+        <div role="alert" className="text-center py-20"><p className="text-error mb-4">{loadError}</p><button onClick={loadOrders} className="bg-primary text-on-primary px-5 py-3 rounded-xl font-bold">Try again</button></div>
+      ) : orders.length === 0 ? (
         <div className="text-center py-20">
           <span className="material-symbols-outlined text-6xl text-on-surface-variant mb-4 block">
             receipt_long
@@ -247,7 +256,7 @@ export default function OrdersPage() {
                       Total
                     </p>
                     <p className="font-headline font-extrabold text-primary">
-                      ${order.totalAmount.toFixed(2)}
+                      {formatINR(order.totalAmount)}
                     </p>
                   </div>
                   <span
@@ -331,7 +340,7 @@ export default function OrdersPage() {
                     {order.products.map((p, i) => {
                       const prod =
                         typeof p.productId === "object"
-                          ? (p.productId as any)
+                          ? p.productId
                           : null;
                       return (
                         <div
@@ -358,7 +367,7 @@ export default function OrdersPage() {
                   )}
 
                   {/* Delivery OTP - Only shows when rider is out */}
-                  {order.status === "Out for Delivery" && order.deliveryOtp && (
+                  {order.status === "Out for Delivery" && (
                     <div className="mt-4 p-4 border-2 border-primary bg-primary/5 rounded-2xl flex items-center justify-between">
                       <div>
                         <p className="text-xs font-bold font-headline text-primary uppercase tracking-wider mb-0.5">
@@ -369,7 +378,7 @@ export default function OrdersPage() {
                         </p>
                       </div>
                       <span className="text-2xl font-black tracking-widest text-primary font-mono">
-                        {order.deliveryOtp}
+                          Check your email for the delivery code.
                       </span>
                     </div>
                   )}

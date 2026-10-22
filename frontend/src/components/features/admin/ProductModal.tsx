@@ -15,15 +15,28 @@ export default function ProductModal({ editingProduct, onClose, onSave, saving }
   const [form, setForm] = useState<Partial<Product>>(editingProduct || { name: '', price: 0, category: 'Vegetables', description: '', imageUrl: '', tags: [] });
   const [uploadingImg, setUploadingImg] = useState(false);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [imageError, setImageError] = useState('');
   const [tagInput, setTagInput] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setLocalPreview(URL.createObjectURL(file));
-    const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'demo';
-    const PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_PRESET || 'freshcurator';
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type) || file.size > 10 * 1024 * 1024) {
+      setImageError('Choose a JPEG, PNG, WebP, or GIF image smaller than 10 MB.');
+      e.target.value = '';
+      return;
+    }
+    const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_PRESET;
+    if (!CLOUD_NAME || !PRESET) {
+      setImageError('Image hosting is not configured. Set the Cloudinary cloud name and unsigned upload preset.');
+      e.target.value = '';
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setLocalPreview(previewUrl);
+    setImageError('');
     setUploadingImg(true);
     try {
       const fd = new FormData();
@@ -31,9 +44,16 @@ export default function ProductModal({ editingProduct, onClose, onSave, saving }
       fd.append('upload_preset', PRESET);
       const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
       const data = await res.json();
+      if (!res.ok || typeof data.secure_url !== 'string') throw new Error(data.error?.message || 'Image upload failed.');
       setForm(f => ({ ...f, imageUrl: data.secure_url }));
-    } catch { alert('Image upload failed'); }
-    finally { setUploadingImg(false); }
+      URL.revokeObjectURL(previewUrl);
+      setLocalPreview(null);
+      setImageError('');
+    } catch (error) {
+      URL.revokeObjectURL(previewUrl);
+      setLocalPreview(null);
+      setImageError(error instanceof Error ? error.message : 'Image upload failed. Your existing image is unchanged.');
+    } finally { setUploadingImg(false); e.target.value = ''; }
   };
 
   return (
@@ -50,6 +70,7 @@ export default function ProductModal({ editingProduct, onClose, onSave, saving }
             <label className="text-xs font-label font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block">Product Name *</label>
             <input value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="w-full bg-surface-container-low rounded-xl px-4 py-3 text-on-surface font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="e.g. Organic Spinach" />
           </div>
+          {imageError && <p role="alert" className="text-sm text-error">{imageError}</p>}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-label font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block">Price (₹) *</label>
@@ -113,7 +134,7 @@ export default function ProductModal({ editingProduct, onClose, onSave, saving }
                   <span className="material-symbols-outlined text-base">{uploadingImg ? 'progress_activity' : 'cloud_upload'}</span>
                   {uploadingImg ? 'Uploading...' : 'Upload Image'}
                 </button>
-                <input ref={fileRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleImageUpload} className="hidden" />
               </div>
             </div>
           </div>
@@ -122,7 +143,7 @@ export default function ProductModal({ editingProduct, onClose, onSave, saving }
           <button onClick={onClose} className="flex-1 py-3 rounded-xl font-bold font-headline border-2 border-outline-variant/20 text-on-surface-variant hover:bg-surface-container-low transition-colors">Cancel</button>
           <button 
             onClick={() => onSave(form)} 
-            disabled={saving || uploadingImg || !form.name || !form.price || !form.imageUrl} 
+            disabled={saving || uploadingImg || !form.name?.trim() || !Number.isFinite(Number(form.price)) || Number(form.price) < 0 || !(form.imageUrl || '').trim()}
             className="flex-1 py-3 rounded-xl font-bold font-headline bg-primary text-on-primary hover:scale-[1.02] transition-transform shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {saving ? 'Saving...' : (editingProduct ? 'Save Changes' : 'Create Product')}

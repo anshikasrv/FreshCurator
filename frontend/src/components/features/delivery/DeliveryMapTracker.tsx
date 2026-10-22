@@ -1,6 +1,5 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react';
-import { useSearchParams } from 'next-auth/react'; // This is wrong, it should be next/navigation
 import { useSearchParams as useNextSearchParams } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { fetchAITip } from '@/lib/api';
